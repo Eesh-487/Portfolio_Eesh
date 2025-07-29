@@ -1,3 +1,4 @@
+import React from 'react';
 import { Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { StarField } from './StarField';

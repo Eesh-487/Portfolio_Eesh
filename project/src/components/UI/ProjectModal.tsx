@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, Github, FileText } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';

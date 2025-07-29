@@ -1,3 +1,4 @@
+import React from 'react';
 import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls as DreiOrbitControls } from '@react-three/drei';
@@ -8,7 +9,6 @@ export function CameraControls() {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
   const cameraTarget = useAppStore((state) => state.cameraTarget);
-  const cameraDistance = useAppStore(s => s.cameraDistance);
   const setCameraTarget = useAppStore((state) => state.setCameraTarget);
   const centerNodeId = useAppStore((state) => state.centerNodeId);
 

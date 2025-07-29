@@ -33,9 +33,7 @@ tsconfig.node.json
 vite.config.ts
 vite-env.d.ts
 
-# Tailwind/PostCSS config
-tailwind.config.js
-postcss.config.js
+
 
 # ESLint config
 eslint.config.js

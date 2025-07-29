@@ -6,7 +6,7 @@ import { ProjectModal } from './components/UI/ProjectModal';
 import { CosmicCursor } from './components/UI/CosmicCursor';
 import { HelpPanel } from './components/UI/HelpPanel';
 import { NavigatorPanel } from './components/UI/Navigator';
-
+import React from 'react';
 function App() {
   const [loading, setLoading] = useState(true);
 

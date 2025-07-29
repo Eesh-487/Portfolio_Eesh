@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X } from 'lucide-react';
@@ -15,7 +14,7 @@ export function SearchBar() {
       const filtered = projects.filter(project =>
         project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.technologies.some(tech => 
+        project.technologies?.some(tech => 
           tech.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );

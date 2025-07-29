@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';

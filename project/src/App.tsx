@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Scene3D } from './components/Scene/Scene3D';
 import { SearchBar } from './components/UI/SearchBar';
-import { FilterPanel } from './components/UI/FilterPanel';
 import { ProjectModal } from './components/UI/ProjectModal';
 import { CosmicCursor } from './components/UI/CosmicCursor';
 import { HelpPanel } from './components/UI/HelpPanel';
 import { NavigatorPanel } from './components/UI/Navigator';
-import React from 'react';
 function App() {
   const [loading, setLoading] = useState(true);
 

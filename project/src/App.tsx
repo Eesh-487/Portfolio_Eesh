@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import { Scene3D } from './components/Scene/Scene3D';
 import { SearchBar } from './components/UI/SearchBar';

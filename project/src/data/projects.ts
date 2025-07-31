@@ -79,7 +79,18 @@ If you're looking for someone who blends technical depth with a love for problem
   demoUrl: 'https://disasterfront.vercel.app/',
   githubUrl: 'https://github.com/Eesh-487/disasterfront',
   connections: ['projects'] // Add to the relevant parent nodes
-}
+},
+{
+    id: 'RiskPortfolio',
+    title: 'RiskPortfolio',
+    category: 'fullstack', // or 'ai' if it uses ML, or 'personal' if it's your own
+    position: [2, 1, 0], // choose a unique position
+    description: 'An interactive platform for stock market portfolio analysis, risk assessment, and optimization, enabling users to make data-driven investment decisions.',
+    technologies: ['React', 'Vite', 'Tailwind', 'Node.js', 'Express', 'MongoDB'],
+    demoUrl: 'https://stocks-frontend-wheat.vercel.app/',// update if public
+    size: 'medium',
+    connections: ['projects'], // add related project IDs if any
+  },
 // quwdho
 
 ];

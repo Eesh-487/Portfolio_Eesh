@@ -91,6 +91,30 @@ If you're looking for someone who blends technical depth with a love for problem
     size: 'medium',
     connections: ['projects'], // add related project IDs if any
   },
-// quwdho
+  {
+  id: 'modflight',
+  title: 'ModFlight',
+  category: 'ai',
+  position: [1, -2, 1],
+  description: 'A flight data analysis and simulation platform built with Streamlit, providing interactive tools for flight performance optimization and aerodynamic modeling.',
+  technologies: [
+    'Python', 
+    'Streamlit', 
+    'Plotly', 
+    'Pandas', 
+    'NumPy', 
+    'Scikit-learn', 
+    'Sentence Transformers', 
+    'NLTK', 
+    'FAISS', 
+    'Seaborn', 
+    'Matplotlib', 
+    'Machine Learning'
+  ],
+  demoUrl: 'https://modflight.streamlit.app/',
+  githubUrl: 'https://github.com/Eesh-487/mod-certification-nlp-flight',
+  size: 'medium',
+  connections: ['projects']
+}
 
 ];

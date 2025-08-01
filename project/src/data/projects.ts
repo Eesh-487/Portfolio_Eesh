@@ -90,13 +90,12 @@ If you're looking for someone who blends technical depth with a love for problem
     demoUrl: 'https://stocks-frontend-wheat.vercel.app/',// update if public
     size: 'medium',
     connections: ['projects'], // add related project IDs if any
-  },
-  {
+  },{
   id: 'modflight',
   title: 'ModFlight',
   category: 'ai',
   position: [1, -2, 1],
-  description: 'A flight data analysis and simulation platform built with Streamlit, providing interactive tools for flight performance optimization and aerodynamic modeling.',
+  description: 'An intelligent aircraft modification certification platform featuring automated classification, regulatory mapping, and EASA Level of Involvement assessment. Uses advanced NLP and machine learning to analyze modification types, predict applicable CS-25/AMC regulations, and provide similarity analysis with historical modifications for comprehensive certification planning.',
   technologies: [
     'Python', 
     'Streamlit', 

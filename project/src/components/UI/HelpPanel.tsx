@@ -1,29 +1,58 @@
-import React from 'react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, X } from 'lucide-react';
+import { X, HelpCircle, Mouse, Navigation, Eye, Star, Rocket, Home } from 'lucide-react';
 
 export function HelpPanel() {
   const [isOpen, setIsOpen] = useState(false);
 
   const controls = [
-    { key: 'Mouse Drag', action: 'Rotate camera around the scene' },
-    { key: 'Mouse Wheel', action: 'Zoom in/out (2x to 50x)' },
-    { key: 'Arrow Keys', action: 'Pan camera position' },
-    { key: 'Space', action: 'Reset camera to origin' },
-    { key: '+/-', action: 'Adjust field of view' },
-    { key: 'Click Star', action: 'View project details' },
-    { key: 'Search', action: 'Find and navigate to projects' },
+    { 
+      key: 'Mouse Drag', 
+      action: 'Rotate camera around the scene',
+      icon: <Mouse className="w-4 h-4" />
+    },
+    { 
+      key: 'Mouse Wheel', 
+      action: 'Zoom in/out (2x to 50x)',
+      icon: <Eye className="w-4 h-4" />
+    },
+    { 
+      key: 'Arrow Keys', 
+      action: 'Pan camera position',
+      icon: <Navigation className="w-4 h-4" />
+    },
+    { 
+      key: 'Space', 
+      action: 'Reset camera to origin',
+      icon: <Home className="w-4 h-4" />
+    },
+    { 
+      key: 'Click Star', 
+      action: 'View project details',
+      icon: <Star className="w-4 h-4" />
+    },
+    { 
+      key: 'Search', 
+      action: 'Find and navigate to projects',
+      icon: <Rocket className="w-4 h-4" />
+    },
   ];
+
+  const showWelcomeModal = () => {
+    localStorage.removeItem('portfolio-visited');
+    window.location.reload();
+  };
 
   return (
     <>
-      <button
+      <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 bg-gray-900/80 backdrop-blur-sm text-white p-3 rounded-full border border-gray-700 hover:bg-gray-800/80 transition-colors z-40"
+        className="fixed bottom-4 right-4 bg-blue-600/90 backdrop-blur-sm text-white p-3 rounded-full border border-blue-500 hover:bg-blue-700/90 transition-colors z-40 shadow-lg"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
       >
         <HelpCircle size={20} />
-      </button>
+      </motion.button>
 
       <AnimatePresence>
         {isOpen && (
@@ -42,7 +71,7 @@ export function HelpPanel() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">Navigation Controls</h2>
+                <h2 className="text-xl font-bold text-white">Navigation Help</h2>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="text-gray-400 hover:text-white transition-colors"
@@ -51,23 +80,33 @@ export function HelpPanel() {
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 mb-6">
                 {controls.map((control, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-cyan-400 font-mono text-sm">
-                      {control.key}
-                    </span>
-                    <span className="text-gray-300 text-sm text-right flex-1 ml-4">
-                      {control.action}
-                    </span>
-                  </div>
+                  <motion.div
+                    key={control.key}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg"
+                  >
+                    <div className="text-blue-400">
+                      {control.icon}
+                    </div>
+                    <div>
+                      <div className="text-white font-medium text-sm">{control.key}</div>
+                      <div className="text-gray-400 text-xs">{control.action}</div>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
 
-              <div className="mt-6 p-3 bg-gray-800/50 rounded-lg">
-                <p className="text-gray-400 text-sm text-center">
-                  Explore the cosmic portfolio by clicking on glowing stars to discover projects
-                </p>
+              <div className="border-t border-gray-700 pt-4">
+                <button
+                  onClick={showWelcomeModal}
+                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Show Welcome Guide
+                </button>
               </div>
             </motion.div>
           </motion.div>

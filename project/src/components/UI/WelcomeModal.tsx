@@ -13,16 +13,20 @@ interface NavigationOption {
 }
 
 export function WelcomeModal() {
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false); // Changed to false by default
   const { setCameraTarget, setSelectedProject } = useAppStore();
 
   useEffect(() => {
-    const visited = localStorage.getItem('portfolio-visited');
-    if (!visited) {
+    // Only show welcome modal if it's the first visit ever
+    const firstVisit = localStorage.getItem('portfolio-first-visit');
+    if (!firstVisit) {
+      localStorage.setItem('portfolio-first-visit', 'true');
       setShowWelcome(true);
     } else {
       setShowWelcome(false);
     }
+    // Always set the visited flag
+    localStorage.setItem('portfolio-visited', 'true');
   }, []);
 
   const navigationOptions: NavigationOption[] = [

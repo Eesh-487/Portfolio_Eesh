@@ -15,15 +15,24 @@ function getChildren(id: string) {
     .filter((child): child is typeof projects[0] => !!child);
 }
 
-function ProjectDropdown({ project }: { project: typeof projects[0] }) {
+function ProjectDropdown({ project, allProjects = false }: { project: typeof projects[0], allProjects?: boolean }) {
   const [open, setOpen] = useState(false);
   const setCameraTarget = useAppStore(s => s.setCameraTarget);
   const setSelectedProject = useAppStore(s => s.setSelectedProject);
 
-  // Only show actual projects (not about/resume/contact)
-  const children = getChildren(project.id).filter(
-    c => !['about-me', 'resume', 'contact'].includes(c.id)
-  );
+  // Get projects to display
+  let children;
+  if (allProjects) {
+    // Show all projects except the main navigation nodes
+    children = projects.filter(
+      p => !['about-me', 'resume', 'contact', 'projects'].includes(p.id)
+    );
+  } else {
+    // Only show direct children
+    children = getChildren(project.id).filter(
+      c => !['about-me', 'resume', 'contact'].includes(c.id)
+    );
+  }
 
   return (
     <div className="mb-1">
@@ -56,7 +65,7 @@ function ProjectDropdown({ project }: { project: typeof projects[0] }) {
 }
 
 export function NavigatorPanel() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true); // Set to true by default
 
   const aboutMe = getProjectById('about-me');
   const resume = getProjectById('resume');
@@ -72,12 +81,13 @@ export function NavigatorPanel() {
     <div className="w-64">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center w-20 px-4 py-2 mb-2 bg-gray-800 text-cyan-400 font-bold rounded-lg shadow hover:bg-gray-700 transition-colors"
+        className="flex items-center w-full px-4 py-2 mb-2 bg-gray-800/90 backdrop-blur-sm text-cyan-400 font-bold rounded-lg shadow hover:bg-gray-700 transition-colors"
       >
         {/* Symbol/Icon for Navigator */}
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
+        <span className="mr-2">Navigation</span>
         <span className="ml-auto">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
@@ -109,7 +119,7 @@ export function NavigatorPanel() {
           >
             Contact Me
           </button>
-          <ProjectDropdown project={projectsNode} />
+          <ProjectDropdown project={projectsNode} allProjects={true} />
         </div>
       )}
     </div>

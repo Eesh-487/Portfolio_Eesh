@@ -43,7 +43,7 @@ If you're looking for someone who blends technical depth with a love for problem
   ],
     size: 'large',
     connections: [
-      'about-me','disaster-reporting-tool'
+      'about-me', 'disaster-reporting-tool', 'RiskPortfolio', 'modflight'
     ]
   },
   {
@@ -72,7 +72,7 @@ If you're looking for someone who blends technical depth with a love for problem
   id: 'disaster-reporting-tool',
   title: 'Disaster Reporting Tool',
   category: 'ai', // You can duplicate this object for 'fullstack' if you want it to show in both
-  position: [/* choose a position, e.g. */ 6, 2, -3],
+  position: [10, 4, -3], // Moved further away from center
   description: 'A real-time disaster reporting and visualization platform using AI and fullstack technologies.',
   technologies: ['React', 'TypeScript', 'Node.js', 'MongoDB', 'AI', 'Mapbox'],
   size: 'medium',
@@ -84,7 +84,7 @@ If you're looking for someone who blends technical depth with a love for problem
     id: 'RiskPortfolio',
     title: 'RiskPortfolio',
     category: 'fullstack', // or 'ai' if it uses ML, or 'personal' if it's your own
-    position: [2, 1, 0], // choose a unique position
+    position: [12, -2, 3], // Positioned further to the right
     description: 'An interactive platform for stock market portfolio analysis, risk assessment, and optimization, enabling users to make data-driven investment decisions.',
     technologies: ['React', 'Vite', 'Tailwind', 'Node.js', 'Express', 'MongoDB'],
     demoUrl: 'https://stocks-frontend-wheat.vercel.app/',// update if public
@@ -94,7 +94,7 @@ If you're looking for someone who blends technical depth with a love for problem
   id: 'modflight',
   title: 'ModFlight',
   category: 'ai',
-  position: [1, -2, 1],
+  position: [9, -5, 5], // Better positioned to avoid overlap
   description: 'An intelligent aircraft modification certification platform featuring automated classification, regulatory mapping, and EASA Level of Involvement assessment. Uses advanced NLP and machine learning to analyze modification types, predict applicable CS-25/AMC regulations, and provide similarity analysis with historical modifications for comprehensive certification planning.',
   technologies: [
     'Python', 

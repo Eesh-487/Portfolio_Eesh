@@ -32,17 +32,18 @@ export function ProjectStar({ project }: ProjectStarProps) {
   const setCameraTarget = useAppStore((state) => state.setCameraTarget);
   const setSelectedProject = useAppStore((state) => state.setSelectedProject);
 
-  const baseSize = project.size === 'large' ? 0.5 : project.size === 'medium' ? 0.3 : 0.2;
+  // Increased sizes for better visibility
+  const baseSize = project.size === 'large' ? 0.8 : project.size === 'medium' ? 0.5 : 0.3;
   const size = hovered ? baseSize * 1.5 : baseSize;
 
   useFrame((state) => {
     if (meshRef.current) {
-      // Gentle pulsing animation
-      const scale = size + Math.sin(state.clock.elapsedTime * 2 + project.position[0]) * 0.05;
+      // Enhanced pulsing animation
+      const scale = size + Math.sin(state.clock.elapsedTime * 2 + project.position[0]) * 0.1;
       meshRef.current.scale.setScalar(scale);
     }
     if (glowRef.current) {
-      const scale = (size * 2) + Math.sin(state.clock.elapsedTime * 1.5 + project.position[0]) * 0.1;
+      const scale = (size * 2.2) + Math.sin(state.clock.elapsedTime * 1.5 + project.position[0]) * 0.15;
       glowRef.current.scale.setScalar(scale);
     }
   });
@@ -65,32 +66,31 @@ export function ProjectStar({ project }: ProjectStarProps) {
       
       {/* Glow effect */}
       <mesh ref={glowRef}>
-        <sphereGeometry args={[size * 2, 16, 16]} />
+        <sphereGeometry args={[size * 2.2, 24, 24]} />
         <meshBasicMaterial
           color={categoryGlows[project.category]}
           transparent
-          opacity={hovered ? 0.3 : 0.1}
+          opacity={hovered ? 0.4 : 0.2}
           side={THREE.BackSide}
         />
       </mesh>
 
-      {/* Tooltip on hover */}
-      {hovered && (
-        <Html
-          position={[0, size + 1, 0]}
-          center
-          distanceFactor={10}
-          className="pointer-events-none"
+      {/* Always visible label */}
+      <Html
+        position={[0, size + 1, 0]}
+        center
+        distanceFactor={15}
+        className="pointer-events-none"
+        zIndexRange={[0, 50]} // Set a lower z-index range so modal can appear above
+      >
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-gray-900/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-gray-700 text-sm whitespace-nowrap font-medium"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gray-900/90 backdrop-blur-sm text-white px-3 py-2 rounded-lg border border-gray-700 text-sm whitespace-nowrap"
-          >
-            {project.title}
-          </motion.div>
-        </Html>
-      )}
+          {project.title}
+        </motion.div>
+      </Html>
     </group>
   );
 }

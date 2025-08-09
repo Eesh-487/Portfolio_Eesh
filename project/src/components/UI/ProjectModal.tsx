@@ -20,7 +20,7 @@ export function ProjectModal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[1000] p-4"
           onClick={() => setSelectedProject(null)}
         >
           <motion.div
@@ -28,7 +28,7 @@ export function ProjectModal() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             transition={{ type: 'spring', duration: 0.5 }}
-            className="bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700 p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto"
+            className="bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700 p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -48,7 +48,7 @@ export function ProjectModal() {
             </div>
 
             {selectedProject.description && (
-              <p className="text-gray-300 mb-6 leading-relaxed">
+              <p className="text-gray-200 mb-6 leading-relaxed text-base font-medium">
                 {selectedProject.description}
               </p>
             )}
@@ -104,7 +104,7 @@ export function ProjectModal() {
                     <h3 className="text-white font-semibold mb-3">Technologies</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedProject.technologies.map((tech) => (
-                        <span key={tech} className="bg-gray-800 text-gray-300 px-3 py-1 rounded-full text-sm">
+                        <span key={tech} className="bg-gray-800 text-cyan-100 px-3 py-1.5 rounded-full text-sm font-medium">
                           {tech}
                         </span>
                       ))}

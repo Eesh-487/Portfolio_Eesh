@@ -11,24 +11,46 @@ function sphericalPosition(radius: number, theta: number, phi: number): [number,
 
 export const projects: Project[] = [
   // Center node: About Me
-  {
+    {
   id: 'about-me',
   title: 'A b o u t - M e',
   category: 'personal',
   position: [0, 0, 0],
   description: `
-Hi, I'm Eesh — a passionate engineer, creative thinker, and lifelong learner driven by curiosity and a desire to solve real-world problems through technology. Whether I’m building intelligent systems, optimizing digital workflows, or experimenting with emerging tech, I’m always pushing boundaries to craft solutions that are not only functional but meaningful.
+Hi, I'm Eesh — a passionate engineer, creative thinker, and lifelong learner driven by curiosity and a desire to solve real-world problems through technology.
 
-With a background in computer science and hands-on experience across the full development lifecycle, I thrive at the intersection of software engineering, data-driven insight, and user-focused design. I’ve worked on a diverse range of projects — from AI-powered applications and web platforms to automation tools and research initiatives — each one deepening my understanding of how code can create tangible impact.
+🔹 Technical Expertise
+  • Building intelligent systems
+  • Optimizing digital workflows
+  • Exploring emerging technologies
 
-I’m especially excited about innovation in areas like artificial intelligence, distributed systems, and intelligent automation. My recent work includes building LLM-powered agents for supply chain optimization, creating disaster response platforms that combine machine learning with geospatial data, and developing hybrid quantum-classical models for financial forecasting.
+🔹 Background
+  • Computer science foundation
+  • Hands-on experience across the full development lifecycle
 
-Outside of work, I enjoy mentoring budding developers, writing about tech, and exploring ideas at the cutting edge of computing and society. I believe that great engineering is as much about empathy and clarity as it is about algorithms and architecture.
+🔹 Professional Focus
+  • Working at the intersection of software engineering, data-driven insights, and user-focused design
 
-If you're looking for someone who blends technical depth with a love for problem-solving, you’re in the right place. Let’s build something meaningful together.
-  `.trim(),
+🔹 Project Experience
+  • AI-powered applications and web platforms
+  • Automation tools and research initiatives
+  • LLM-powered agents for supply chain optimization
+  • Disaster response platforms (ML + geospatial data)
+  • Hybrid quantum-classical models for financial forecasting
+
+🔹 Areas of Interest
+  • Artificial intelligence and machine learning
+  • Distributed systems
+  • Intelligent automation
+  • Quantum computing applications
+
+I believe that great engineering is as much about empathy and clarity as it is about algorithms and architecture. Let's build something meaningful together.
+`.trim(),
+
   size: 'large',
   connections: ['projects', 'resume', 'contact']
+
+
 },
   // Three main branches
   {

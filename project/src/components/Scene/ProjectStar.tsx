@@ -86,7 +86,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-gray-900/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-gray-700 text-sm sm:text-base whitespace-nowrap font-medium tracking-wide shadow-lg"
+          className="bg-gray-900/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-gray-700 text-sm sm:text-base whitespace-nowrap font-medium tracking-wide shadow-lg font-orbitron"
         >
           {project.title}
         </motion.div>

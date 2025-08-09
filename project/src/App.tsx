@@ -13,7 +13,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden cursor-none">
+    <div className="relative w-full h-screen overflow-hidden cursor-none font-quicksand">
       {/* 3D Scene */}
       <Scene3D onLoaded={() => setLoading(false)} />
 
@@ -22,7 +22,7 @@ function App() {
   {/* Centered heading */}
   <div className="w-full flex justify-center mt-2 sm:mt-6 pointer-events-auto">
     <div className="text-center">
-      <h1 className="text-xl sm:text-2xl font-bold text-white mb-0 sm:mb-1">Eesh Khanna</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-white mb-0 sm:mb-1 font-orbitron">Eesh Khanna</h1>
       <p className="text-gray-400 text-xs sm:text-sm">Transforming Ideas into Intelligent Solutions </p>
     </div>
   </div>

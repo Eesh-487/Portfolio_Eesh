@@ -18,7 +18,7 @@ export function CosmicCursor() {
     <>
       {/* Main crosshair */}
       <motion.div
-        className="fixed pointer-events-none z-50"
+        className="fixed pointer-events-none z-[9999]"
         style={{
           left: mousePosition.x - 10,
           top: mousePosition.y - 10,
@@ -39,7 +39,7 @@ export function CosmicCursor() {
 
       {/* Outer ring */}
       <motion.div
-        className="fixed pointer-events-none z-40"
+        className="fixed pointer-events-none z-[9998]"
         style={{
           left: mousePosition.x - 20,
           top: mousePosition.y - 20,

@@ -28,7 +28,7 @@ export function ProjectModal() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             transition={{ type: 'spring', duration: 0.5 }}
-            className="bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700 p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-xl"
+            className="bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700 p-4 sm:p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -37,18 +37,18 @@ export function ProjectModal() {
                   className="w-4 h-4 rounded-full"
                   style={{ backgroundColor: categoryColors[selectedProject.category] }}
                 />
-                <h2 className="text-xl font-bold text-white">{selectedProject.title}</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">{selectedProject.title}</h2>
               </div>
               <button
                 onClick={() => setSelectedProject(null)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors p-1 -mr-1"
               >
                 <X size={20} />
               </button>
             </div>
 
             {selectedProject.description && (
-              <p className="text-gray-200 mb-6 leading-relaxed text-base font-medium">
+              <p className="text-white mb-6 leading-loose text-sm sm:text-base font-medium tracking-wider">
                 {selectedProject.description}
               </p>
             )}
@@ -60,7 +60,7 @@ export function ProjectModal() {
                   href="/resume.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 rounded-lg font-bold transition-colors"
+                  className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 sm:px-5 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base tracking-wide"
                 >
                   <FileText size={18} />
                   Open Resume PDF
@@ -73,10 +73,10 @@ export function ProjectModal() {
               <div className="mb-6 flex flex-col items-center">
                 {selectedProject.email && (
                   <>
-                    <span className="text-lg font-semibold text-white mb-2">Email</span>
+                    <span className="text-base sm:text-lg font-semibold text-white mb-2">Email</span>
                     <a
                       href={`mailto:${selectedProject.email}`}
-                      className="text-cyan-400 underline text-base mb-4"
+                      className="text-cyan-400 underline text-sm sm:text-base mb-4 break-all text-center tracking-wide"
                     >
                       {selectedProject.email}
                     </a>
@@ -87,7 +87,7 @@ export function ProjectModal() {
                     href={selectedProject.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold transition-colors mt-2"
+                    className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg font-bold transition-colors mt-2 text-sm sm:text-base"
                   >
                     <Github size={18} />
                     GitHub
@@ -101,10 +101,10 @@ export function ProjectModal() {
               <>
                 {selectedProject.technologies && selectedProject.technologies.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-white font-semibold mb-3">Technologies</h3>
+                    <h3 className="text-white font-semibold mb-3 text-sm sm:text-base tracking-wide">Technologies</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedProject.technologies.map((tech) => (
-                        <span key={tech} className="bg-gray-800 text-cyan-100 px-3 py-1.5 rounded-full text-sm font-medium">
+                        <span key={tech} className="bg-gray-800 text-cyan-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium tracking-wider">
                           {tech}
                         </span>
                       ))}
@@ -112,13 +112,13 @@ export function ProjectModal() {
                   </div>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   {selectedProject.demoUrl && (
                     <a
                       href={selectedProject.demoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base font-medium tracking-wide"
                     >
                       <ExternalLink size={16} />
                       Live Demo
@@ -129,7 +129,7 @@ export function ProjectModal() {
                       href={selectedProject.githubUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
+                      className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base font-medium tracking-wide"
                     >
                       <Github size={16} />
                       Source Code

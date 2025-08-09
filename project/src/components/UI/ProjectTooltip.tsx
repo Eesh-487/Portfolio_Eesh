@@ -37,12 +37,12 @@ export function ProjectTooltip({ title, description, category, isVisible, positi
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: categoryColors[category as keyof typeof categoryColors] }}
               />
-              <h3 className="text-white font-semibold text-sm">{title}</h3>
+              <h3 className="text-white font-semibold text-sm sm:text-base tracking-wide">{title}</h3>
             </div>
-            <p className="text-gray-400 text-xs leading-relaxed">
+            <p className="text-gray-300 text-xs sm:text-sm leading-relaxed tracking-wide">
               {description.length > 100 ? `${description.substring(0, 100)}...` : description}
             </p>
-            <p className="text-gray-500 text-xs mt-1">Click to explore</p>
+            <p className="text-gray-400 text-xs mt-1 tracking-wide">Click to explore</p>
           </div>
         </motion.div>
       )}

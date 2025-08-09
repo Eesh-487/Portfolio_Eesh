@@ -36,15 +36,16 @@ export function SearchBar() {
       <motion.div
         className="flex items-center bg-gray-900/80 backdrop-blur-sm rounded-full border border-gray-700"
         animate={{
-          width: isExpanded ? 300 : 48,
+          width: isExpanded ? '100%' : 40,
+          maxWidth: isExpanded ? 300 : 40,
         }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
       >
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="p-3 text-gray-400 hover:text-white transition-colors"
+          className="p-2 sm:p-3 text-gray-400 hover:text-white transition-colors"
         >
-          <Search size={20} />
+          <Search size={18} />
         </button>
         
         <AnimatePresence>
@@ -83,16 +84,16 @@ export function SearchBar() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full mt-2 w-full bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden z-50"
+            className="absolute top-full mt-2 w-full bg-gray-900/95 backdrop-blur-sm rounded-lg border border-gray-700 overflow-hidden z-50 shadow-xl max-h-[50vh] overflow-y-auto"
           >
             {suggestions.map((project) => (
               <button
                 key={project.id}
                 onClick={() => handleSuggestionClick(project)}
-                className="w-full text-left p-3 hover:bg-gray-800/50 transition-colors border-b border-gray-800 last:border-b-0"
+                className="w-full text-left p-2 sm:p-3 hover:bg-gray-800/50 transition-colors border-b border-gray-800 last:border-b-0"
               >
-                <div className="text-white font-medium">{project.title}</div>
-                <div className="text-gray-400 text-sm">{project.category}</div>
+                <div className="text-white font-medium text-sm sm:text-base">{project.title}</div>
+                <div className="text-gray-400 text-xs sm:text-sm">{project.category}</div>
               </button>
             ))}
           </motion.div>

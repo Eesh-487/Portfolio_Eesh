@@ -13,7 +13,7 @@ export const projects: Project[] = [
   // Center node: About Me
   {
   id: 'about-me',
-  title: 'About Me',
+  title: 'A b o u t - M e',
   category: 'personal',
   position: [0, 0, 0],
   description: `
@@ -33,7 +33,7 @@ If you're looking for someone who blends technical depth with a love for problem
   // Three main branches
   {
     id: 'projects',
-    title: 'Projects',
+    title: 'P r o j e c t s',
     category: 'personal',
     position: sphericalPosition(8, 0, Math.PI / 2),
     description: 'Explore my featured projects in AI, Quantum Computing, and Full-Stack development.',
@@ -48,7 +48,7 @@ If you're looking for someone who blends technical depth with a love for problem
   },
   {
     id: 'resume',
-    title: 'Resume',
+    title: 'R e s u m e',
     category: 'personal',
     position: sphericalPosition(8, (2 * Math.PI) / 3, Math.PI / 2),
     description: 'Download my resume and view my professional timeline.',
@@ -59,7 +59,7 @@ If you're looking for someone who blends technical depth with a love for problem
   },
   {
   id: 'contact',
-  title: 'Contact Me',
+  title: 'C o n t a c t - M e',
   category: 'personal',
   position: sphericalPosition(8, (4 * Math.PI) / 3, Math.PI / 2),
   description: 'Get in touch via email or social links.',
@@ -70,7 +70,7 @@ If you're looking for someone who blends technical depth with a love for problem
 },
   {
   id: 'disaster-reporting-tool',
-  title: 'Disaster Reporting Tool',
+  title: 'D i s a s t e r - R e p o r t i n g - T o o l',
   category: 'ai', // You can duplicate this object for 'fullstack' if you want it to show in both
   position: [10, 4, -3], // Moved further away from center
   description: 'A real-time disaster reporting and visualization platform using AI and fullstack technologies.',
@@ -82,7 +82,7 @@ If you're looking for someone who blends technical depth with a love for problem
 },
 {
     id: 'RiskPortfolio',
-    title: 'RiskPortfolio',
+    title: 'R i s k - P o r t f o l i o',
     category: 'fullstack', // or 'ai' if it uses ML, or 'personal' if it's your own
     position: [12, -2, 3], // Positioned further to the right
     description: 'An interactive platform for stock market portfolio analysis, risk assessment, and optimization, enabling users to make data-driven investment decisions.',
@@ -92,7 +92,7 @@ If you're looking for someone who blends technical depth with a love for problem
     connections: ['projects'], // add related project IDs if any
   },{
   id: 'modflight',
-  title: 'ModFlight',
+  title: 'M o d F l i g h t',
   category: 'ai',
   position: [9, -5, 5], // Better positioned to avoid overlap
   description: 'An intelligent aircraft modification certification platform featuring automated classification, regulatory mapping, and EASA Level of Involvement assessment. Uses advanced NLP and machine learning to analyze modification types, predict applicable CS-25/AMC regulations, and provide similarity analysis with historical modifications for comprehensive certification planning.',

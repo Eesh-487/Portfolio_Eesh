@@ -33,7 +33,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
   const setSelectedProject = useAppStore((state) => state.setSelectedProject);
 
   // Increased sizes for better visibility
-  const baseSize = project.size === 'large' ? 0.8 : project.size === 'medium' ? 0.5 : 0.3;
+  const baseSize = project.size === 'large' ? 1.0 : project.size === 'medium' ? 0.65 : 0.4;
   const size = hovered ? baseSize * 1.5 : baseSize;
 
   useFrame((state) => {
@@ -43,7 +43,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
       meshRef.current.scale.setScalar(scale);
     }
     if (glowRef.current) {
-      const scale = (size * 2.2) + Math.sin(state.clock.elapsedTime * 1.5 + project.position[0]) * 0.15;
+      const scale = (size * 1.8) + Math.sin(state.clock.elapsedTime * 1.5 + project.position[0]) * 0.15;
       glowRef.current.scale.setScalar(scale);
     }
   });
@@ -66,7 +66,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
       
       {/* Glow effect */}
       <mesh ref={glowRef}>
-        <sphereGeometry args={[size * 2.2, 24, 24]} />
+        <sphereGeometry args={[size * 1.8, 24, 24]} />
         <meshBasicMaterial
           color={categoryGlows[project.category]}
           transparent
@@ -77,7 +77,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
 
       {/* Always visible label */}
       <Html
-        position={[0, size + 1, 0]}
+        position={[0, size + 1.1, 0]}
         center
         distanceFactor={15}
         className="pointer-events-none"
@@ -86,7 +86,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-gray-900/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-gray-700 text-sm whitespace-nowrap font-medium"
+          className="bg-gray-900/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg border border-gray-700 text-sm sm:text-base whitespace-nowrap font-medium tracking-wide shadow-lg"
         >
           {project.title}
         </motion.div>

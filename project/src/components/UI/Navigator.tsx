@@ -38,13 +38,13 @@ function ProjectDropdown({ project, allProjects = false }: { project: typeof pro
     <div className="mb-1">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center w-full text-left px-3 py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors"
+        className="flex items-center w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors"
       >
         <span className="mr-2">{open ? '▼' : '▶'}</span>
         {project.title}
       </button>
       {open && (
-        <div className="ml-2 border-l border-gray-700 pl-2">
+        <div className="ml-2 border-l border-gray-700 pl-1 sm:pl-2">
           {children.map(child => (
             <button
               key={child.id}
@@ -52,8 +52,8 @@ function ProjectDropdown({ project, allProjects = false }: { project: typeof pro
                 setCameraTarget(child.position);
                 setSelectedProject(child);
               }}
-              className="block w-full text-left px-3 py-2 rounded text-gray-300 hover:bg-gray-800 transition-colors"
-              style={{ paddingLeft: 32 }}
+              className="block w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded text-gray-300 hover:bg-gray-800 transition-colors"
+              style={{ paddingLeft: '1.5rem' }}
             >
               {child.title}
             </button>
@@ -78,26 +78,26 @@ export function NavigatorPanel() {
   const setSelectedProject = useAppStore(s => s.setSelectedProject);
 
   return (
-    <div className="w-64">
+    <div className="w-full sm:w-64">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center w-full px-4 py-2 mb-2 bg-gray-800/90 backdrop-blur-sm text-cyan-400 font-bold rounded-lg shadow hover:bg-gray-700 transition-colors"
+        className="flex items-center w-full px-3 sm:px-4 py-2 mb-2 bg-gray-800/90 backdrop-blur-sm text-cyan-400 font-bold rounded-lg shadow hover:bg-gray-700 transition-colors text-sm sm:text-base"
       >
         {/* Symbol/Icon for Navigator */}
-        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
         <span className="mr-2">Navigation</span>
         <span className="ml-auto">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl shadow-lg p-4 max-h-[80vh] overflow-y-auto">
+        <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl shadow-lg p-3 sm:p-4 max-h-[60vh] sm:max-h-[80vh] overflow-y-auto text-sm sm:text-base">
           <button
             onClick={() => {
               setCameraTarget(aboutMe.position);
               setSelectedProject(aboutMe);
             }}
-            className="block w-full text-left px-3 py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors mb-1"
+            className="block w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors mb-1"
           >
             About Me
           </button>
@@ -106,7 +106,7 @@ export function NavigatorPanel() {
               setCameraTarget(resume.position);
               setSelectedProject(resume);
             }}
-            className="block w-full text-left px-3 py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors mb-1"
+            className="block w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors mb-1"
           >
             Resume
           </button>
@@ -115,7 +115,7 @@ export function NavigatorPanel() {
               setCameraTarget(contact.position);
               setSelectedProject(contact);
             }}
-            className="block w-full text-left px-3 py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors mb-2"
+            className="block w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded font-bold text-white hover:bg-gray-800 transition-colors mb-2"
           >
             Contact Me
           </button>

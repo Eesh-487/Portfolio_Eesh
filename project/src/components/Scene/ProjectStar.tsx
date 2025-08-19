@@ -11,24 +11,39 @@ interface ProjectStarProps {
   project: Project;
 }
 
-const categoryColors = {
-  ai: '#06B6D4',
-  quantum: '#8B5CF6',
-  fullstack: '#14B8A6',
-  personal: '#F59E0B',
+// More vivid base colors
+const categoryColors: Record<string, string> = {
+  ai: '#00E6FF',       // Vibrant cyan
+  quantum: '#B077FF',  // Bright violet
+  fullstack: '#00F5A8',// Neon emerald
+  personal: '#FFC043', // Warm amber-gold
 };
 
-const categoryGlows = {
-  ai: '#0891B2',
-  quantum: '#7C3AED',
-  fullstack: '#0F766E',
-  personal: '#D97706',
+// Saturated outer glow hues (slightly deeper for contrast)
+const categoryGlows: Record<string, string> = {
+  ai: '#0096B3',
+  quantum: '#8E3BFF',
+  fullstack: '#00B777',
+  personal: '#D97A00',
 };
+
+// Pre-compute highlight (lighter) variants for smooth hover transitions
+const highlightColors: Record<string, THREE.Color> = Object.fromEntries(
+  Object.entries(categoryColors).map(([k, v]) => {
+    const base = new THREE.Color(v);
+    const lighter = base.clone();
+    const hsl = { h: 0, s: 0, l: 0 } as any;
+    base.getHSL(hsl);
+    lighter.setHSL(hsl.h, Math.min(1, hsl.s * 1.05), Math.min(1, hsl.l * 1.25));
+    return [k, lighter];
+  })
+);
 
 export function ProjectStar({ project }: ProjectStarProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
+  const setHoveredProjectId = useAppStore(s => (s as any).setHoveredProjectId);
   const setCameraTarget = useAppStore((state) => state.setCameraTarget);
   const setSelectedProject = useAppStore((state) => state.setSelectedProject);
 
@@ -37,14 +52,32 @@ export function ProjectStar({ project }: ProjectStarProps) {
   const size = hovered ? baseSize * 1.5 : baseSize;
 
   useFrame((state) => {
+    const t = state.clock.elapsedTime;
     if (meshRef.current) {
-      // Enhanced pulsing animation
-      const scale = size + Math.sin(state.clock.elapsedTime * 2 + project.position[0]) * 0.1;
+      // Pulsing scale
+      const scale = size + Math.sin(t * 2 + project.position[0]) * 0.1;
       meshRef.current.scale.setScalar(scale);
+
+      // Color & emissive pulse / hover brighten
+      const mat = meshRef.current.material as THREE.MeshPhongMaterial | undefined;
+      if (mat) {
+        const base = new THREE.Color(categoryColors[project.category]);
+        const target = hovered ? highlightColors[project.category] : base;
+        // Smoothly interpolate
+        mat.color.lerp(target, 0.08);
+        // Emissive subtle breathing
+        const emissiveStrength = 0.2 + (hovered ? 0.35 : 0.25) + Math.sin(t * 3) * 0.05;
+        mat.emissive.copy(base).multiplyScalar(emissiveStrength);
+        mat.needsUpdate = true;
+      }
     }
     if (glowRef.current) {
-      const scale = (size * 1.8) + Math.sin(state.clock.elapsedTime * 1.5 + project.position[0]) * 0.15;
+      const scale = (size * 1.85) + Math.sin(t * 1.5 + project.position[0]) * 0.12;
       glowRef.current.scale.setScalar(scale);
+      const gMat = glowRef.current.material as THREE.MeshBasicMaterial | undefined;
+      if (gMat) {
+        gMat.opacity = hovered ? 0.42 : 0.22;
+      }
     }
   });
 
@@ -52,26 +85,40 @@ export function ProjectStar({ project }: ProjectStarProps) {
     <group position={project.position}>
       <mesh
         ref={meshRef}
-        onPointerEnter={() => setHovered(true)}
-        onPointerLeave={() => setHovered(false)}
-        onClick={() => {setCameraTarget(project.position); setSelectedProject(project);}} 
+        onPointerEnter={() => { setHovered(true); setHoveredProjectId(project.id); }}
+        onPointerLeave={() => { setHovered(false); setHoveredProjectId(null); }}
+        onClick={() => { setCameraTarget(project.position); setSelectedProject(project); }}
       >
-        <sphereGeometry args={[size, 32, 32]} />
-        <meshBasicMaterial
+        <sphereGeometry args={[size, 48, 48]} />
+        <meshPhongMaterial
           color={categoryColors[project.category]}
+          emissive={new THREE.Color(categoryColors[project.category]).multiplyScalar(0.3)}
+          emissiveIntensity={1}
+          shininess={95}
+          specular={new THREE.Color('#e6faff')}
           transparent
-          opacity={0.9}
+          opacity={0.97}
         />
       </mesh>
+
+      {/* Outline / halo */}
+      {hovered && (
+        <mesh>
+          <sphereGeometry args={[size * 1.1, 40, 40]} />
+          <meshBasicMaterial color={categoryColors[project.category]} transparent opacity={0.25} />
+        </mesh>
+      )}
       
       {/* Glow effect */}
       <mesh ref={glowRef}>
-        <sphereGeometry args={[size * 1.8, 32, 32]} />
+        <sphereGeometry args={[size * 1.95, 48, 48]} />
         <meshBasicMaterial
           color={categoryGlows[project.category]}
           transparent
-          opacity={hovered ? 0.4 : 0.2}
+          blending={THREE.AdditiveBlending}
+          opacity={hovered ? 0.38 : 0.2}
           side={THREE.BackSide}
+          depthWrite={false}
         />
       </mesh>
 

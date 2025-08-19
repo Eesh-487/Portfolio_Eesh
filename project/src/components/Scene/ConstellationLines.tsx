@@ -2,8 +2,10 @@ import React from 'react';
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { projects } from '../../data/projects';
+import { useAppStore } from '../../store/useAppStore';
 
 export function ConstellationLines() {
+  const hoveredProjectId = useAppStore((s: any) => s.hoveredProjectId);
   const lines = useMemo(() => {
     const lineData: Array<{ points: [number, number, number][]; color: string; opacity: number }> = [];
     
@@ -32,15 +34,22 @@ export function ConstellationLines() {
       {lines.map((line, index) => {
         const points = line.points.map(point => new THREE.Vector3(...point));
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const isHighlighted = !!hoveredProjectId && (() => {
+          const [aPos, bPos] = line.points;
+          const a = projects.find(pr => JSON.stringify(pr.position) === JSON.stringify(aPos));
+            const b = projects.find(pr => JSON.stringify(pr.position) === JSON.stringify(bPos));
+          if (!a || !b) return false;
+          return a.id === hoveredProjectId || b.id === hoveredProjectId;
+        })();
         
         return (
           <line key={index}>
             <bufferGeometry attach="geometry" {...geometry} />
             <lineBasicMaterial
               attach="material"
-              color={line.color}
+              color={isHighlighted ? '#4cc9f0' : line.color}
               transparent
-              opacity={line.opacity}
+              opacity={isHighlighted ? 0.7 : line.opacity}
             />
           </line>
         );

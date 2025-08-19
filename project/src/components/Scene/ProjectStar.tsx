@@ -56,7 +56,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
         onPointerLeave={() => setHovered(false)}
         onClick={() => {setCameraTarget(project.position); setSelectedProject(project);}} 
       >
-        <sphereGeometry args={[size, 16, 16]} />
+        <sphereGeometry args={[size, 32, 32]} />
         <meshBasicMaterial
           color={categoryColors[project.category]}
           transparent
@@ -66,7 +66,7 @@ export function ProjectStar({ project }: ProjectStarProps) {
       
       {/* Glow effect */}
       <mesh ref={glowRef}>
-        <sphereGeometry args={[size * 1.8, 24, 24]} />
+        <sphereGeometry args={[size * 1.8, 32, 32]} />
         <meshBasicMaterial
           color={categoryGlows[project.category]}
           transparent

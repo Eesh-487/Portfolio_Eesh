@@ -54,12 +54,6 @@ function App() {
     </div>
     {/* Right side: Add help button */}
     <div className="mt-2 mr-1 sm:mr-2 flex items-center gap-2">
-      <button
-        onClick={() => navigateTo('/upload')}
-        className="bg-gray-800/80 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-gray-700 transition-colors text-cyan-400 text-sm font-medium"
-      >
-        Upload
-      </button>
       <button 
         onClick={() => document.dispatchEvent(new CustomEvent('toggle-help'))}
         className="bg-gray-800/80 backdrop-blur-sm p-1.5 sm:p-2 rounded-full hover:bg-gray-700 transition-colors"

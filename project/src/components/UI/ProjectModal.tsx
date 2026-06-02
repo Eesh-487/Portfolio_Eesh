@@ -44,11 +44,6 @@ export function ProjectModal() {
     };
   }, [resumePreviewUrl]);
 
-  const openUploadPage = () => {
-    window.history.pushState({}, '', '/upload');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
-
   return (
     <AnimatePresence>
       {selectedProject && (
@@ -99,18 +94,8 @@ export function ProjectModal() {
             {selectedProject.id === "resume" && (
               <div className="mb-6 space-y-4">
                 <div className="rounded-xl border border-gray-700 bg-gray-950/60 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-white tracking-wide">Resume is managed separately</p>
-                      <p className="mt-1 text-sm text-gray-400">Use the upload page to replace the current PDF.</p>
-                    </div>
-                    <button
-                      onClick={openUploadPage}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-700"
-                    >
-                      Open /upload
-                    </button>
-                  </div>
+                  <p className="text-sm font-semibold text-white tracking-wide">Resume is managed separately</p>
+                  <p className="mt-1 text-sm text-gray-400">Use the direct /upload route to replace the current PDF.</p>
                 </div>
 
                 <div className="rounded-xl border border-gray-700 bg-black/30 overflow-hidden">

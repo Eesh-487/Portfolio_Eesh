@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Scene3D } from './components/Scene/Scene3D';
 import { SearchBar } from './components/UI/SearchBar';
 import { ProjectModal } from './components/UI/ProjectModal';
@@ -9,8 +9,28 @@ import { NavigatorPanel } from './components/UI/Navigator';
 import { WelcomeModal } from './components/UI/WelcomeModal';
 import { ProjectIntroduction } from './components/UI/ProjectIntroduction';
 import { FloatingInfo } from './components/UI/FloatingInfo';
+import { UploadPage } from './components/UI/UploadPage';
+
 function App() {
   const [loading, setLoading] = useState(true);
+  const [pathname, setPathname] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handlePopState = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (nextPath: string) => {
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+      setPathname(nextPath);
+    }
+  };
+
+  if (pathname === '/upload') {
+    return <UploadPage onBack={() => navigateTo('/')} />;
+  }
 
   return (
     <div className="relative w-full h-screen overflow-hidden cursor-none font-quicksand">
@@ -33,7 +53,13 @@ function App() {
       <NavigatorPanel />
     </div>
     {/* Right side: Add help button */}
-    <div className="mt-2 mr-1 sm:mr-2">
+    <div className="mt-2 mr-1 sm:mr-2 flex items-center gap-2">
+      <button
+        onClick={() => navigateTo('/upload')}
+        className="bg-gray-800/80 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full hover:bg-gray-700 transition-colors text-cyan-400 text-sm font-medium"
+      >
+        Upload
+      </button>
       <button 
         onClick={() => document.dispatchEvent(new CustomEvent('toggle-help'))}
         className="bg-gray-800/80 backdrop-blur-sm p-1.5 sm:p-2 rounded-full hover:bg-gray-700 transition-colors"

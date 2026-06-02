@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Github, FileText, Upload } from "lucide-react";
+import { X, ExternalLink, Github, FileText } from "lucide-react";
 import { useAppStore } from "../../store/useAppStore";
 
 const categoryColors = {
@@ -12,18 +12,10 @@ const categoryColors = {
 
 export function ProjectModal() {
   const { selectedProject, setSelectedProject } = useAppStore();
-  const [selectedResumeFile, setSelectedResumeFile] = useState<File | null>(null);
   const [resumePreviewUrl, setResumePreviewUrl] = useState<string>('/resume.pdf');
-  const [isUploadingResume, setIsUploadingResume] = useState(false);
-  const [resumeUploadMessage, setResumeUploadMessage] = useState<string | null>(null);
-  const [resumeUploadError, setResumeUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedProject?.id === 'resume') {
-      setSelectedResumeFile(null);
-      setResumeUploadMessage(null);
-      setResumeUploadError(null);
-
       const loadCurrentResume = async () => {
         try {
           const response = await fetch('/api/resume', { method: 'GET' });
@@ -40,10 +32,7 @@ export function ProjectModal() {
 
       void loadCurrentResume();
     } else {
-      setSelectedResumeFile(null);
       setResumePreviewUrl('/resume.pdf');
-      setResumeUploadMessage(null);
-      setResumeUploadError(null);
     }
   }, [selectedProject?.id]);
 
@@ -55,65 +44,9 @@ export function ProjectModal() {
     };
   }, [resumePreviewUrl]);
 
-  const handleResumeFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    setResumeUploadError(null);
-    setResumeUploadMessage(null);
-
-    if (!file) {
-      setSelectedResumeFile(null);
-      return;
-    }
-
-    if (file.type !== 'application/pdf') {
-      setSelectedResumeFile(null);
-      setResumeUploadError('Please choose a PDF file.');
-      return;
-    }
-
-    setSelectedResumeFile(file);
-    setResumePreviewUrl((currentUrl) => {
-      if (currentUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(currentUrl);
-      }
-      return URL.createObjectURL(file);
-    });
-  };
-
-  const handleResumeUpload = async () => {
-    if (!selectedResumeFile) {
-      setResumeUploadError('Select a PDF before uploading.');
-      return;
-    }
-
-    setIsUploadingResume(true);
-    setResumeUploadError(null);
-    setResumeUploadMessage(null);
-
-    try {
-      const response = await fetch('/api/resume', {
-        method: 'POST',
-        headers: {
-          'Content-Type': selectedResumeFile.type || 'application/pdf',
-          'X-Filename': selectedResumeFile.name,
-        },
-        body: selectedResumeFile,
-      });
-
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => null);
-        throw new Error(errorPayload?.error || `Upload failed (${response.status})`);
-      }
-
-      const resumeData = await response.json();
-      setResumePreviewUrl(`${resumeData.downloadUrl || '/resume.pdf'}?ts=${Date.now()}`);
-      setSelectedResumeFile(null);
-      setResumeUploadMessage('Resume uploaded and published.');
-    } catch (error) {
-      setResumeUploadError(error instanceof Error ? error.message : 'Upload failed.');
-    } finally {
-      setIsUploadingResume(false);
-    }
+  const openUploadPage = () => {
+    window.history.pushState({}, '', '/upload');
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   return (
@@ -166,37 +99,18 @@ export function ProjectModal() {
             {selectedProject.id === "resume" && (
               <div className="mb-6 space-y-4">
                 <div className="rounded-xl border border-gray-700 bg-gray-950/60 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                    <label className="flex-1 grid gap-2 text-left">
-                      <span className="text-sm font-semibold text-white tracking-wide">Upload a new PDF</span>
-                      <input
-                        key={selectedProject.id}
-                        type="file"
-                        accept="application/pdf"
-                        onChange={handleResumeFileChange}
-                        className="block w-full text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-cyan-700"
-                      />
-                    </label>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-white tracking-wide">Resume is managed separately</p>
+                      <p className="mt-1 text-sm text-gray-400">Use the upload page to replace the current PDF.</p>
+                    </div>
                     <button
-                      onClick={() => void handleResumeUpload()}
-                      disabled={!selectedResumeFile || isUploadingResume}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={openUploadPage}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-700"
                     >
-                      <Upload size={16} />
-                      {isUploadingResume ? 'Uploading...' : 'Publish PDF'}
+                      Open /upload
                     </button>
                   </div>
-                  {selectedResumeFile && (
-                    <p className="mt-3 text-xs sm:text-sm text-gray-400 break-all">
-                      Selected file: {selectedResumeFile.name}
-                    </p>
-                  )}
-                  {resumeUploadMessage && (
-                    <p className="mt-3 text-sm text-emerald-400">{resumeUploadMessage}</p>
-                  )}
-                  {resumeUploadError && (
-                    <p className="mt-3 text-sm text-red-400">{resumeUploadError}</p>
-                  )}
                 </div>
 
                 <div className="rounded-xl border border-gray-700 bg-black/30 overflow-hidden">

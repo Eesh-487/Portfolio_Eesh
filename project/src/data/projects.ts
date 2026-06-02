@@ -75,7 +75,7 @@ I believe that great engineering is as much about empathy and clarity as it is a
     position: sphericalPosition(8, (2 * Math.PI) / 3, Math.PI / 2),
     description: 'Download my resume and view my professional timeline.',
     technologies: [],
-    demoUrl: '/resume.pdf',
+    demoUrl: '/api/resume/file',
     size: 'large',
     connections: ['about-me']
   },

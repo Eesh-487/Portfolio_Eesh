@@ -1,4 +1,4 @@
-import { FALLBACK_RESUME_URL, getCurrentResumeUrl } from '../../../lib/resumeStorage.js';
+import { FALLBACK_RESUME_URL, getCurrentResumeUrl } from '../../lib/resumeStorage.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') {

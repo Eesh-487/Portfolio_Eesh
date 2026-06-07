@@ -4,5 +4,12 @@
       "source": "/upload",
       "destination": "/index.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/resume.pdf",
+      "destination": "/api/resume/file",
+      "permanent": false
+    }
   ]
 }

@@ -5,21 +5,29 @@ import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
 import { useAppStore } from '../../store/useAppStore';
-import { network, clock, selection } from './networkLayout';
+import { network, clock, selection, toView } from './networkLayout';
 
 const ORIGIN = new THREE.Vector3();
 const PANEL_WIDTH = 460; // desktop detail panel, keep the focused neuron left of it
+const HALF_FOV = Math.tan(THREE.MathUtils.degToRad(55 / 2));
+
+// Distance that keeps the whole network on screen. Turned for portrait it is ~54 tall and ~28 wide.
+function overviewDistance(aspect: number, portrait: boolean) {
+  return portrait ? Math.max(27, 14 / aspect) / HALF_FOV : 31;
+}
 
 // What to frame for a selection: a neuron with outgoing branches (you, a section) is framed
 // together with what it leads to; a single output is framed on its own
-function frameFor(id: string) {
+function frameFor(id: string, aspect: number, portrait: boolean) {
   const children = id === 'about-me'
     ? network.links.filter(([a]) => a === id).map(([, b]) => b)
     : network.children.get(id) ?? [];
-  const points = [id, ...children].map((c) => network.nodes.get(c)!);
+  const points = [id, ...children].map((c) => toView(network.nodes.get(c)!, portrait));
   const center = points.reduce((m, v) => m.add(v), new THREE.Vector3()).divideScalar(points.length);
   const spread = Math.max(...points.map((v) => v.distanceTo(center)));
-  return { center, distance: Math.max(13, spread * 2.2) };
+  // Narrow screens are bound by width, not height
+  const fitWidth = (spread * 1.15) / (HALF_FOV * Math.min(aspect, 1));
+  return { center, distance: Math.max(13, spread * 2.2, fitWidth) };
 }
 
 // Orbit freely; selecting a neuron glides the camera to it, closing glides back out.
@@ -30,11 +38,18 @@ export function CameraRig() {
   const { camera, size } = useThree();
   const gliding = useRef(true);
   const offset = useRef(0);
+  const lift = useRef(0);
 
   useEffect(() => {
     gliding.current = true;
     selection.at = performance.now();
   }, [selected]);
+
+  // Re-frame when the device turns between portrait and landscape
+  const portrait = size.width < size.height;
+  useEffect(() => {
+    gliding.current = true;
+  }, [portrait]);
 
   useEffect(() => {
     const reset = () => {
@@ -53,18 +68,23 @@ export function CameraRig() {
     const k = 1 - Math.exp(-(motionPaused ? 12 : 2.5) * dt);
     const node = selected && network.nodes.get(selected.id);
 
-    // Shift the rendered view left while the side panel is open
+    // Shift the rendered view left while the side panel is open, or up above the bottom sheet on phones
     const wantOffset = node && size.width >= 1024 ? PANEL_WIDTH / 2 : 0;
+    const wantLift = node && size.width < 640 ? size.height * 0.27 : 0;
     offset.current = THREE.MathUtils.lerp(offset.current, wantOffset, k);
+    lift.current = THREE.MathUtils.lerp(lift.current, wantLift, k);
     const cam = camera as THREE.PerspectiveCamera;
-    if (Math.abs(offset.current) > 0.5) cam.setViewOffset(size.width, size.height, offset.current, 0, size.width, size.height);
-    else cam.clearViewOffset();
+    if (Math.abs(offset.current) > 0.5 || Math.abs(lift.current) > 0.5) {
+      cam.setViewOffset(size.width, size.height, offset.current, lift.current, size.width, size.height);
+    } else cam.clearViewOffset();
 
     const c = controls.current;
     if (!c || !gliding.current) return;
-    const frame = node && selected ? frameFor(selected.id) : null;
+    const aspect = size.width / size.height;
+    const portrait = aspect < 1;
+    const frame = node && selected ? frameFor(selected.id, aspect, portrait) : null;
     const target = frame?.center ?? ORIGIN;
-    const distance = frame?.distance ?? 31;
+    const distance = frame?.distance ?? overviewDistance(aspect, portrait);
     c.target.lerp(target, k);
     const want = target.clone().addScaledVector(camera.position.clone().sub(c.target).normalize(), distance);
     camera.position.lerp(want, k);

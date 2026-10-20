@@ -181,9 +181,14 @@ interface NeuronProps {
   project: Project;
   matched: boolean;
   searching: boolean;
+  portrait?: boolean;
 }
 
-export function Neuron({ project, matched, searching }: NeuronProps) {
+// Local offset that lands `d` units screen-up (or screen-right) whether or not the network is turned for portrait
+const up = (d: number, portrait: boolean): [number, number, number] => (portrait ? [-d, 0, 0] : [0, d, 0]);
+const right = (d: number, portrait: boolean): [number, number, number] => (portrait ? [0, d, 0] : [d, 0, 0]);
+
+export function Neuron({ project, matched, searching, portrait = false }: NeuronProps) {
   const groupRef = useRef<THREE.Group>(null);
   const hoveredId = useAppStore((s) => s.hoveredProjectId);
   const selectedId = useAppStore((s) => s.selectedProject?.id);
@@ -291,7 +296,7 @@ export function Neuron({ project, matched, searching }: NeuronProps) {
       </group>
 
       <Html
-        position={[0, radius + (isRoot ? 1.9 : 1.3), 0]}
+        position={up(radius + (isRoot ? 1.9 : 1.3), portrait)}
         center
         className="pointer-events-none"
         zIndexRange={[0, 50]} // Set a lower z-index range so modal can appear above
@@ -314,7 +319,7 @@ export function Neuron({ project, matched, searching }: NeuronProps) {
       </Html>
 
       {hovered && (
-        <Html position={[radius + 0.8, 0, 0]} zIndexRange={[60, 70]} className="pointer-events-none">
+        <Html position={right(radius + 0.8, portrait)} zIndexRange={[60, 70]} className="pointer-events-none">
           <div className="glass w-64 -translate-y-1/2 rounded-2xl p-3.5 text-left">
             <div className="text-[11px] font-semibold tracking-[0.14em]" style={{ color }}>{kicker}</div>
             <div className="mt-0.5 text-[15px] font-semibold text-white">{project.title}</div>

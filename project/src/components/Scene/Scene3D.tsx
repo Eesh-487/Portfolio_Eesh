@@ -1,11 +1,11 @@
 import React from 'react';
 import { Suspense, useEffect, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { Neuron } from './Neuron';
 import { Synapses } from './Synapses';
 import { Backdrop } from './Backdrop';
 import { CameraRig } from './CameraRig';
-import { network } from './networkLayout';
+import { network, PORTRAIT_ROTATION } from './networkLayout';
 import { projects, matchesSearch } from '../../data/projects';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -16,21 +16,25 @@ interface Scene3DProps {
 function SceneContent() {
   const searchTerm = useAppStore((state) => state.searchTerm);
   const searching = searchTerm.length > 1;
+  const portrait = useThree((s) => s.size.width < s.size.height);
 
   return (
     <>
       <CameraRig />
-      <Backdrop />
-      <Synapses />
+      <group rotation={[0, 0, portrait ? PORTRAIT_ROTATION : 0]}>
+        <Backdrop />
+        <Synapses />
 
-      {projects.filter((p) => network.nodes.has(p.id)).map((project) => (
-        <Neuron
-          key={project.id}
-          project={project}
-          searching={searching}
-          matched={searching && matchesSearch(project, searchTerm)}
-        />
-      ))}
+        {projects.filter((p) => network.nodes.has(p.id)).map((project) => (
+          <Neuron
+            key={project.id}
+            project={project}
+            portrait={portrait}
+            searching={searching}
+            matched={searching && matchesSearch(project, searchTerm)}
+          />
+        ))}
+      </group>
     </>
   );
 }

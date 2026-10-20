@@ -33,6 +33,14 @@ export function waveX(t: number) {
   return phase < 4 ? -28 + (phase / 4) * 56 : 999;
 }
 
+// Portrait screens turn the network a quarter turn so it reads top-to-bottom: input on top, outputs below
+export const PORTRAIT_ROTATION = -Math.PI / 2;
+const PORTRAIT_QUAT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), PORTRAIT_ROTATION);
+
+export function toView(v: THREE.Vector3, portrait: boolean) {
+  return portrait ? v.clone().applyQuaternion(PORTRAIT_QUAT) : v.clone();
+}
+
 export function neuronRadius(p: Project) {
   if (p.id === 'about-me') return 1.6;
   if (HUB_IDS.includes(p.id)) return 1.05;

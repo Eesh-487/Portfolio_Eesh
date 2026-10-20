@@ -1,7 +1,7 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
 import { MotionConfig } from 'framer-motion';
-import { HelpCircle, RotateCcw, Pause, Play } from 'lucide-react';
+import { HelpCircle, RotateCcw, Pause, Play, List, Network } from 'lucide-react';
 import { Scene3D } from './components/Scene/Scene3D';
 import { SearchBar } from './components/UI/SearchBar';
 import { ProjectModal } from './components/UI/ProjectModal';
@@ -51,15 +51,73 @@ function ViewControls() {
   );
 }
 
+function ViewToggle({ list, onToggle }: { list: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={list ? 'Show network' : 'Show as list'}
+      title={list ? 'Show network' : 'Show as list'}
+      className="icon-btn glass pointer-events-auto"
+    >
+      {list ? <Network size={20} /> : <List size={20} />}
+    </button>
+  );
+}
+
 function App() {
   const [loading, setLoading] = useState(true);
+  const [listView, setListView] = useState(false);
   const phone = useIsPhone();
+
+  const loader = loading && (
+    <div className="absolute inset-0 bg-[#050608] flex items-center justify-center text-white z-50" role="status">
+      <div className="text-center">
+        <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4 motion-reduce:animate-none"></div>
+        <p className="text-[15px] text-white/70">Initializing network…</p>
+      </div>
+    </div>
+  );
 
   return (
     <MotionConfig reducedMotion="user">
       <div className="relative w-full h-[100dvh] overflow-hidden font-sans">
-        {phone ? (
-          <MobileView />
+        {phone && listView ? (
+          <>
+            <MobileView />
+            <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 z-20">
+              <ViewToggle list onToggle={() => setListView(false)} />
+            </div>
+          </>
+        ) : phone ? (
+          <>
+            <Scene3D onLoaded={() => setLoading(false)} />
+
+            {/* Phone layer: who this is on top, quick links at the thumb */}
+            <div className="absolute inset-0 pointer-events-none px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <header className="flex items-start gap-2">
+                <div className="flex-1 min-w-0 pointer-events-auto">
+                  <IdentityPanel />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => document.dispatchEvent(new CustomEvent('toggle-help'))}
+                    aria-label="Help"
+                    className="icon-btn glass pointer-events-auto"
+                  >
+                    <HelpCircle size={20} />
+                  </button>
+                  <ViewToggle list={false} onToggle={() => setListView(true)} />
+                </div>
+              </header>
+
+              <div className="absolute inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] flex justify-center pointer-events-auto">
+                <UtilityBar />
+              </div>
+            </div>
+
+            <FloatingInfo />
+            {loader}
+          </>
         ) : (
           <>
             <Scene3D onLoaded={() => setLoading(false)} />
@@ -99,14 +157,7 @@ function App() {
             <FloatingInfo />
 
             {/* Loading fallback for WebGL */}
-            {loading && (
-              <div className="absolute inset-0 bg-[#050608] flex items-center justify-center text-white z-50" role="status">
-                <div className="text-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4 motion-reduce:animate-none"></div>
-                  <p className="text-[15px] text-white/70">Initializing network…</p>
-                </div>
-              </div>
-            )}
+            {loader}
           </>
         )}
 

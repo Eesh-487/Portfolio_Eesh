@@ -1,191 +1,167 @@
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Github } from "lucide-react";
+import React from "react";
+import { ExternalLink, Github, FileText, Mail, Linkedin, ChevronRight } from "lucide-react";
+import { projects } from "../../data/projects";
 import { useAppStore } from "../../store/useAppStore";
+import { HUB_IDS, SECTIONS, sectionOf } from "../Scene/networkLayout";
+import { Sheet } from "./Sheet";
 
-const categoryColors = {
-  ai: "#06B6D4",
-  quantum: "#8B5CF6",
-  fullstack: "#14B8A6",
-  personal: "#F59E0B",
-};
+// Renders description text: blank lines separate blocks, "- " lines become a list,
+// and a plain line directly above a list becomes its heading
+function Description({ text }: { text: string }) {
+  return (
+    <div className="mb-6 space-y-4 max-w-prose text-[15px] leading-relaxed text-white/85">
+      {text.trim().split(/\n\s*\n/).map((block, i) => {
+        const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
+        const items = lines.filter((l) => l.startsWith('- ')).map((l) => l.slice(2));
+        const prose = lines.filter((l) => !l.startsWith('- '));
+        if (!items.length) return <p key={i}>{prose.join(' ')}</p>;
+        return (
+          <div key={i}>
+            {prose.length > 0 && (
+              <h3 className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55">{prose.join(' ')}</h3>
+            )}
+            <ul className="list-disc space-y-1 pl-5 marker:text-white/35">
+              {items.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ProjectModal() {
   const { selectedProject, setSelectedProject } = useAppStore();
-  const [resumePreviewUrl, setResumePreviewUrl] = useState<string>('/resume.pdf');
+  const p = selectedProject;
+  const section = p ? SECTIONS[sectionOf(p.id)] : null;
+  const connected = (p?.connections ?? [])
+    .filter((id) => id !== "about-me")
+    .map((id) => projects.find((x) => x.id === id))
+    .filter((x): x is NonNullable<typeof x> => !!x);
+  const isHub = !!p && HUB_IDS.includes(p.id);
 
-  useEffect(() => {
-    if (selectedProject?.id === 'resume') {
-      const loadCurrentResume = async () => {
-        try {
-          const response = await fetch('/api/resume', { method: 'GET' });
-          if (!response.ok) {
-            throw new Error('Resume API unavailable');
-          }
-
-          const resumeData = await response.json();
-          setResumePreviewUrl(`${resumeData.downloadUrl || '/resume.pdf'}?ts=${Date.now()}`);
-        } catch {
-          setResumePreviewUrl('/resume.pdf');
-        }
-      };
-
-      void loadCurrentResume();
-    } else {
-      setResumePreviewUrl('/resume.pdf');
-    }
-  }, [selectedProject?.id]);
-
-  useEffect(() => {
-    return () => {
-      if (resumePreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(resumePreviewUrl);
-      }
-    };
-  }, [resumePreviewUrl]);
+  const connectedList = connected.length > 0 && (
+    <div className={isHub ? "mb-6" : "mt-6"}>
+      <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55 mb-2">{isHub ? "In This Section" : "Connected"}</h3>
+      <div className="rounded-2xl bg-white/[0.06] p-1.5">
+        {connected.map((c) => {
+          const color = SECTIONS[sectionOf(c.id)].color;
+          return (
+            <button key={c.id} onClick={() => setSelectedProject(c)} className="glass-row">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+              <span className="min-w-0">
+                <span className="block truncate">{c.title}</span>
+                {c.tagline && <span className="block truncate text-[12px] text-white/50">{c.tagline}</span>}
+              </span>
+              <ChevronRight size={16} className="ml-auto shrink-0 text-white/40" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
-    <AnimatePresence>
-      {selectedProject && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[1000] p-4"
-          onClick={() => setSelectedProject(null)}
-        >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.5 }}
-            className="bg-gray-900/95 backdrop-blur-sm rounded-xl border border-gray-700 p-4 sm:p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{
-                    backgroundColor: categoryColors[selectedProject.category],
-                  }}
-                />
-                <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide font-orbitron">
-                  {selectedProject.title}
-                </h2>
-              </div>
-              <button
-                onClick={() => setSelectedProject(null)}
-                className="text-gray-400 hover:text-white transition-colors p-1 -mr-1"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Description */}
-            {selectedProject.description && (
-              <p className="text-white mb-6 leading-loose text-sm sm:text-base font-normal tracking-widest font-quicksand max-w-prose mx-auto whitespace-pre-line">
-                {selectedProject.description}
-              </p>
+    <Sheet
+      open={!!p}
+      side
+      onClose={() => setSelectedProject(null)}
+      title={p?.title}
+      subtitle={
+        p && section && (
+          <>
+            {!HUB_IDS.includes(p.id) && (
+              <span className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em]" style={{ color: section.color }}>
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: section.color, boxShadow: `0 0 8px ${section.color}` }} />
+                {section.label}
+              </span>
             )}
+            {p.tagline && <span className="mt-1.5 block text-[15px] text-white/75">{p.tagline}</span>}
+          </>
+        )
+      }
+    >
+      {p && (
+        <>
+          {/* Sections lead with what they contain */}
+          {isHub && connectedList}
 
-            {/* Resume PDF */}
-            {selectedProject.id === "resume" && (
-              <div className="mb-6 space-y-4">
-                <a
-                  href={resumePreviewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-700"
-                >
-                  View PDF
+          {p.description && <Description text={p.description} />}
+
+          {p.id === "resume" && (
+            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer" className="btn-prominent w-full sm:w-auto">
+              <FileText size={18} />
+              Open Resume PDF
+            </a>
+          )}
+
+          {p.id === "contact" && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              {p.email && (
+                <a href={`mailto:${p.email}`} className="btn-prominent">
+                  <Mail size={18} />
+                  {p.email}
                 </a>
-              </div>
-            )}
-
-            {/* Contact Card */}
-            {selectedProject.id === "contact" && (
-              <div className="mb-6 flex flex-col items-center">
-                {selectedProject.email && (
-                  <>
-                    <span className="text-base sm:text-lg font-semibold text-white mb-2">
-                      Email
-                    </span>
-                    <a
-                      href={`mailto:${selectedProject.email}`}
-                      className="text-cyan-400 underline text-sm sm:text-base mb-4 break-all text-center tracking-wide"
-                    >
-                      {selectedProject.email}
-                    </a>
-                  </>
-                )}
-                {selectedProject.githubUrl && (
-                  <a
-                    href={selectedProject.githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg font-bold transition-colors mt-2 text-sm sm:text-base"
-                  >
-                    <Github size={18} />
-                    GitHub
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Technologies & Links */}
-            {selectedProject.id !== "resume" &&
-              selectedProject.id !== "contact" && (
-                <>
-                  {selectedProject.technologies &&
-                    selectedProject.technologies.length > 0 && (
-                      <div className="mb-6">
-                        <h3 className="text-white font-semibold mb-3 text-sm sm:text-base tracking-wide font-orbitron">
-                          Technologies
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedProject.technologies.map((tech) => (
-                            <span
-                              key={tech}
-                              className="bg-indigo-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium tracking-wider shadow-sm font-quicksand"
-                            >
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  <div className="flex flex-wrap gap-3">
-                    {selectedProject.demoUrl && (
-                      <a
-                        href={selectedProject.demoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base font-medium tracking-wide"
-                      >
-                        <ExternalLink size={16} />
-                        Live Demo
-                      </a>
-                    )}
-                    {selectedProject.githubUrl && (
-                      <a
-                        href={selectedProject.githubUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base font-medium tracking-wide"
-                      >
-                        <Github size={16} />
-                        Source Code
-                      </a>
-                    )}
-                  </div>
-                </>
               )}
-          </motion.div>
-        </motion.div>
+              {p.githubUrl && (
+                <a href={p.githubUrl} target="_blank" rel="noopener noreferrer" className="btn-glass">
+                  <Github size={18} />
+                  GitHub
+                </a>
+              )}
+              {p.linkedinUrl && (
+                <a href={p.linkedinUrl} target="_blank" rel="noopener noreferrer" className="btn-glass">
+                  <Linkedin size={18} />
+                  LinkedIn
+                </a>
+              )}
+            </div>
+          )}
+
+          {p.id !== "resume" && p.id !== "contact" && (
+            <>
+              {!isHub && p.technologies && p.technologies.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55 mb-2.5">
+                    Technologies
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {p.technologies.map((tech) => (
+                      <span key={tech} className="bg-white/10 text-white/90 px-3 py-1 rounded-full text-[13px] font-medium">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(p.demoUrl || p.githubUrl) && (
+                <div className="flex flex-wrap gap-3">
+                  {p.demoUrl && (
+                    <a href={p.demoUrl} target="_blank" rel="noopener noreferrer" className="btn-prominent">
+                      <ExternalLink size={16} />
+                      Live Demo
+                    </a>
+                  )}
+                  {p.githubUrl && (
+                    <a
+                      href={p.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={p.demoUrl ? "btn-glass" : "btn-prominent"}
+                    >
+                      <Github size={16} />
+                      Source Code
+                    </a>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {!isHub && connectedList}
+        </>
       )}
-    </AnimatePresence>
+    </Sheet>
   );
 }

@@ -4,8 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'orbitron': ['Orbitron', 'sans-serif'],
-        'quicksand': ['Quicksand', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
     },
   },

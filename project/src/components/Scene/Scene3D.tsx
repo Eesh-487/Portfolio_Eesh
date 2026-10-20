@@ -1,52 +1,46 @@
 import React from 'react';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { StarField } from './StarField';
-import { ProjectStar } from './ProjectStar';
-import { ConstellationLines } from './ConstellationLines';
-import { ParticleSystem } from './ParticleSystem';
-import { CameraControls } from './CameraControls';
-import { projects } from '../../data/projects';
+import { Neuron } from './Neuron';
+import { Synapses } from './Synapses';
+import { Backdrop } from './Backdrop';
+import { CameraRig } from './CameraRig';
+import { network } from './networkLayout';
+import { projects, matchesSearch } from '../../data/projects';
 import { useAppStore } from '../../store/useAppStore';
-// import { getConstellationLayout } from '../../data/constellationLayout';
 
 interface Scene3DProps {
   onLoaded?: () => void;
 }
 
 function SceneContent() {
-  // Remove: const centerNodeId = useAppStore((state) => state.centerNodeId);
-  const activeFilters = useAppStore((state) => state.activeFilters);
   const searchTerm = useAppStore((state) => state.searchTerm);
-
-  // Use static projects
-  const filteredProjects = projects.filter((project) => {
-    const matchesFilter = activeFilters.includes(project.category);
-    const matchesSearch =
-      searchTerm === '' ||
-      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const searching = searchTerm.length > 1;
 
   return (
     <>
-      <CameraControls />
-      <StarField />
-      <ParticleSystem />
-      <ConstellationLines />
+      <CameraRig />
+      <Backdrop />
+      <Synapses />
 
-      {filteredProjects.map((project) => (
-        <ProjectStar key={project.id} project={project} />
+      {projects.filter((p) => network.nodes.has(p.id)).map((project) => (
+        <Neuron
+          key={project.id}
+          project={project}
+          searching={searching}
+          matched={searching && matchesSearch(project, searchTerm)}
+        />
       ))}
-
-      <ambientLight intensity={0.1} />
-      <pointLight position={[10, 10, 10]} intensity={0.5} />
     </>
   );
 }
 
+// Fine film grain (SVG turbulence) to keep the dark gradients from banding
+const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+
 export function Scene3D({ onLoaded }: Scene3DProps) {
+  const down = useRef({ x: 0, y: 0 });
+
   useEffect(() => {
     if (onLoaded) {
       // Simulate loading delay or call after assets are loaded
@@ -58,21 +52,34 @@ export function Scene3D({ onLoaded }: Scene3DProps) {
   }, [onLoaded]);
 
   return (
-    <Canvas
-      camera={{
-        position: [0, 0, 20],
-        fov: 60,
-        near: 0.1,
-        far: 1000,
-      }}
-      style={{
-        background:
-          'radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
-      }}
-    >
-      <Suspense fallback={null}>
-        <SceneContent />
-      </Suspense>
-    </Canvas>
+    <div className="absolute inset-0 bg-[#040507]">
+      {/* Static layers behind the canvas: vignette, a dot grid that fades toward the edges, fine grain */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_65%_at_50%_45%,#0f141b_0%,#080a0e_55%,#030405_100%)]" />
+      <div
+        className="absolute inset-0 [mask-image:radial-gradient(ellipse_70%_60%_at_50%_45%,black_20%,transparent_85%)]"
+        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1.2px) 0 0 / 28px 28px' }}
+      />
+      <div className="absolute inset-0 opacity-[0.035] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
+      <Canvas
+        dpr={[1, 2]}
+        camera={{
+          position: [-8, 9, 62],
+          fov: 55,
+          near: 0.1,
+          far: 1000,
+        }}
+        onPointerDown={(e) => (down.current = { x: e.clientX, y: e.clientY })}
+        // Clicking empty space closes the detail panel; finishing a drag does not
+        onPointerMissed={(e) => {
+          if (Math.hypot(e.clientX - down.current.x, e.clientY - down.current.y) < 5) {
+            useAppStore.getState().setSelectedProject(null);
+          }
+        }}
+      >
+        <Suspense fallback={null}>
+          <SceneContent />
+        </Suspense>
+      </Canvas>
+    </div>
   );
 }

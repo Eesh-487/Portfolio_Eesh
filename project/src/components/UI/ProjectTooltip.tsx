@@ -31,7 +31,7 @@ export function ProjectTooltip({ title, description, category, isVisible, positi
             top: position.y - 10,
           }}
         >
-          <div className="bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-lg p-3 max-w-xs shadow-xl">
+          <div className="glass rounded-2xl p-3 max-w-xs">
             <div className="flex items-center gap-2 mb-1">
               <div 
                 className="w-3 h-3 rounded-full"

@@ -1,20 +1,126 @@
-/* Import Orbitron for headings and labels */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');
-
-/* Import Quicksand for body text */
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Apply font families */
 @layer base {
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Orbitron', sans-serif;
-  }
-  
+  html,
   body {
-    font-family: 'Quicksand', sans-serif;
+    margin: 0;
+    overflow: hidden;
+    background: #050608;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
   }
+
+  :focus-visible {
+    outline: 2px solid #5ee7f7;
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+}
+
+/* Liquid Glass approximation for the floating functional layer only
+   (toolbars, search, navigator, sheets, tooltips). Content stays glass-free. */
+@layer components {
+  .glass,
+  .glass-thick,
+  .glass-clear {
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+      0 10px 40px -10px rgba(0, 0, 0, 0.6);
+  }
+  /* Regular: controls and small floating surfaces */
+  .glass {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.06)),
+      rgba(20, 22, 26, 0.55);
+  }
+  /* Thick: text-heavy sheets */
+  .glass-thick {
+    -webkit-backdrop-filter: blur(40px) saturate(1.5);
+    backdrop-filter: blur(40px) saturate(1.5);
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02) 35%),
+      rgba(16, 18, 22, 0.8);
+  }
+  /* Clear: tiny controls over the 3D scene */
+  .glass-clear {
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(12px) saturate(1.4);
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 50%),
+      rgba(255, 255, 255, 0.06);
+  }
+
+  /* Interactive glass: press feedback */
+  .glass-press {
+    transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.4), background-color 0.2s, filter 0.2s;
+  }
+  .glass-press:hover {
+    filter: brightness(1.18);
+  }
+  .glass-press:active {
+    transform: scale(0.96);
+  }
+
+  /* Rows inside glass surfaces */
+  .glass-row {
+    @apply flex w-full min-h-[44px] items-center gap-3 rounded-xl px-3 text-left text-[15px] text-white/90 transition-colors hover:bg-white/10;
+  }
+
+  /* One prominent action per view: tinted background, not tinted label */
+  .btn-prominent {
+    @apply glass-press inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-cyan-400 px-5 text-[15px] font-semibold text-[#06121a];
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 20px -6px rgba(34, 211, 238, 0.6);
+  }
+  .btn-glass {
+    @apply glass glass-press inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-5 text-[15px] font-medium text-white;
+  }
+  .icon-btn {
+    @apply glass-press inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/80 hover:text-white;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .glass,
+  .glass-thick,
+  .glass-clear {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: #1c1e22;
+    border-color: rgba(255, 255, 255, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-press,
+  .glass-press:active {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Neuron labels appear in step with the network intro */
+.neuron-label {
+  animation: neuron-label-in 0.5s ease-out both;
+}
+@keyframes neuron-label-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .neuron-label { animation: none; }
 }

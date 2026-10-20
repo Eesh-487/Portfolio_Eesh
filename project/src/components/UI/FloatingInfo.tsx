@@ -8,7 +8,7 @@ export function FloatingInfo() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowTip(false);
-    }, 8000); // Show tip for 8 seconds
+    }, 10000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -20,12 +20,14 @@ export function FloatingInfo() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="fixed top-20 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none"
+          className="fixed inset-x-0 bottom-24 z-30 pointer-events-none flex justify-center px-4"
         >
-          <div className="bg-blue-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full border border-blue-500 flex items-center gap-2 shadow-lg">
-            <Sparkles className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              Hover over stars to see project details, click to explore!
+          <div className="glass text-white px-4 py-2.5 rounded-full flex items-center gap-2" role="status">
+            <Sparkles className="w-4 h-4 text-cyan-300 shrink-0" />
+            <span className="text-[13px] sm:text-[15px] font-medium">
+              {window.matchMedia('(pointer: coarse)').matches
+                ? 'Drag to explore. Tap a neuron to open it.'
+                : 'Drag to explore, scroll to zoom. Click a neuron to open it.'}
             </span>
           </div>
         </motion.div>

@@ -10,6 +10,9 @@ export interface Project {
   size: 'small' | 'medium' | 'large';
   connections?: string[];
   email?: string;
+  linkedinUrl?: string;
+  tagline?: string;     // one line for hover previews and panel headers
+  featured?: boolean;   // strongest work renders as a larger neuron
 }
 
 export interface AppState {
@@ -19,6 +22,4 @@ export interface AppState {
   setSearchTerm: (term: string) => void;
   activeFilters: string[];
   setActiveFilters: (filters: string[]) => void;
-  cameraTarget: [number, number, number] | null;
-  setCameraTarget: (target: [number, number, number] | null) => void;
 }

@@ -1,69 +1,119 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
+import { MotionConfig } from 'framer-motion';
+import { HelpCircle, RotateCcw, Pause, Play } from 'lucide-react';
 import { Scene3D } from './components/Scene/Scene3D';
+import { SearchBar } from './components/UI/SearchBar';
 import { ProjectModal } from './components/UI/ProjectModal';
-import { CosmicCursor } from './components/UI/CosmicCursor';
 import { HelpPanel } from './components/UI/HelpPanel';
-import { WelcomeModal } from './components/UI/WelcomeModal';
-import { ProjectIntroduction } from './components/UI/ProjectIntroduction';
+import { NavigatorPanel } from './components/UI/Navigator';
 import { FloatingInfo } from './components/UI/FloatingInfo';
-import { UploadPage } from './components/UI/UploadPage';
+import { IdentityPanel } from './components/UI/IdentityPanel';
+import { UtilityBar } from './components/UI/UtilityBar';
+import { MobileView } from './components/UI/MobileView';
+import { useAppStore } from './store/useAppStore';
+
+const PHONE = '(max-width: 767px)';
+
+function useIsPhone() {
+  const [phone, setPhone] = useState(() => window.matchMedia(PHONE).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE);
+    const onChange = () => setPhone(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return phone;
+}
+
+function ViewControls() {
+  const paused = useAppStore((s) => s.motionPaused);
+  const toggleMotion = useAppStore((s) => s.toggleMotion);
+  return (
+    <div className="glass flex items-center gap-0.5 rounded-full p-1">
+      <button
+        onClick={() => document.dispatchEvent(new CustomEvent('reset-view'))}
+        aria-label="Reset view"
+        title="Reset view"
+        className="icon-btn hover:bg-white/10"
+      >
+        <RotateCcw size={18} />
+      </button>
+      <button
+        onClick={toggleMotion}
+        aria-label={paused ? 'Play animation' : 'Pause animation'}
+        title={paused ? 'Play animation' : 'Pause animation'}
+        className="icon-btn hover:bg-white/10"
+      >
+        {paused ? <Play size={18} /> : <Pause size={18} />}
+      </button>
+    </div>
+  );
+}
 
 function App() {
   const [loading, setLoading] = useState(true);
-  const [pathname, setPathname] = useState(window.location.pathname);
-
-  useEffect(() => {
-    const handlePopState = () => setPathname(window.location.pathname);
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  const navigateTo = (nextPath: string) => {
-    if (window.location.pathname !== nextPath) {
-      window.history.pushState({}, '', nextPath);
-      setPathname(nextPath);
-    }
-  };
-
-  if (pathname === '/upload') {
-    return <UploadPage onBack={() => navigateTo('/')} />;
-  }
+  const phone = useIsPhone();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden cursor-none font-quicksand">
-      {/* 3D Scene */}
-      <Scene3D onLoaded={() => setLoading(false)} />
+    <MotionConfig reducedMotion="user">
+      <div className="relative w-full h-[100dvh] overflow-hidden font-sans">
+        {phone ? (
+          <MobileView />
+        ) : (
+          <>
+            <Scene3D onLoaded={() => setLoading(false)} />
 
-      {/* UI Overlay */}
-     <div className="absolute inset-0 pointer-events-none">
-  {/* Centered heading */}
-  <div className="w-full flex justify-center mt-2 sm:mt-6 pointer-events-auto">
-    <div className="text-center">
-      <h1 className="text-xl sm:text-2xl font-bold text-white mb-0 sm:mb-1 font-orbitron">Eesh Khanna</h1>
-      <p className="text-gray-400 text-xs sm:text-sm">Transforming Ideas into Intelligent Solutions </p>
-    </div>
-  </div>
-</div>
+            {/* Floating functional layer */}
+            <div className="absolute inset-0 pointer-events-none p-5">
+              <header className="flex items-start justify-between gap-3">
+                <div className="relative z-10 flex flex-col gap-3 w-72 pointer-events-auto">
+                  <div className="lg:hidden">
+                    <IdentityPanel />
+                  </div>
+                  <SearchBar />
+                  <NavigatorPanel />
+                </div>
 
-      {/* Modals and overlays */}
-      <WelcomeModal />
-      <ProjectIntroduction />
-      <FloatingInfo />
-      <ProjectModal />
-      <HelpPanel />
-      <CosmicCursor />
+                <div className="hidden lg:block absolute left-1/2 -translate-x-1/2 top-5 pointer-events-auto">
+                  <IdentityPanel />
+                </div>
 
-      {/* Loading fallback for WebGL */}
-      {loading && (
-        <div className="absolute inset-0 bg-gray-900 flex items-center justify-center text-white z-50">
-          <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p>Loading cosmic experience...</p>
-          </div>
-        </div>
-      )}
-    </div>
+                <button
+                  onClick={() => document.dispatchEvent(new CustomEvent('toggle-help'))}
+                  aria-label="Help"
+                  className="icon-btn glass pointer-events-auto"
+                >
+                  <HelpCircle size={20} />
+                </button>
+              </header>
+
+              <div className="absolute bottom-5 left-5 pointer-events-auto">
+                <ViewControls />
+              </div>
+              <div className="absolute bottom-5 right-5 pointer-events-auto">
+                <UtilityBar />
+              </div>
+            </div>
+
+            <FloatingInfo />
+
+            {/* Loading fallback for WebGL */}
+            {loading && (
+              <div className="absolute inset-0 bg-[#050608] flex items-center justify-center text-white z-50" role="status">
+                <div className="text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4 motion-reduce:animate-none"></div>
+                  <p className="text-[15px] text-white/70">Initializing network…</p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        <ProjectModal />
+        <HelpPanel />
+      </div>
+    </MotionConfig>
   );
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
@@ -7,11 +7,6 @@ import { network, clock, SECTIONS, sectionOf, HUB_IDS, LAYER_R, SectionId, POINT
 import { useAppStore } from '../../store/useAppStore';
 
 const BOKEH = 46;
-const PLANES = 7;
-const GRID = 7;
-const PLANE_GAP = 17;
-const GRID_GAP = 4.6;
-const PLANE_LINKS = 12; // faint connections between each pair of neighbouring planes
 const EMBED_CLUSTERS = 14;
 const EMBED_POINTS = 4000;
 const SECTION_IDS = Object.keys(SECTIONS) as SectionId[];
@@ -114,97 +109,6 @@ void main(){
 
 const additive = { blending: THREE.AdditiveBlending, transparent: true, depthWrite: false };
 
-// Deep network layers: a row of node grids behind the network, seen at an angle like a textbook
-// diagram. Each forward-pass sweep runs through the grids one layer at a time.
-const layerVertex = /* glsl */ `
-uniform float uProg;
-attribute float aLayer;
-varying float vI;
-void main(){
-  float pass = exp(-pow((aLayer - uProg) / 0.1, 2.0));
-  vI = 0.3 + pass * 0.7;
-  vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = (1.8 + pass * 1.2) * (220.0 / -mv.z) * ${POINT_SCALE};
-  gl_Position = projectionMatrix * mv;
-}
-`;
-const layerPointFragment = /* glsl */ `
-varying float vI;
-void main(){
-  float d = length(gl_PointCoord - 0.5);
-  if (d > 0.5) discard;
-  float a = smoothstep(0.5, 0.15, d) * vI;
-  gl_FragColor = vec4(vec3(0.55, 0.85, 1.0) * a, a);
-}
-`;
-const layerLineFragment = /* glsl */ `
-varying float vI;
-void main(){
-  float a = vI * 0.2;
-  gl_FragColor = vec4(vec3(0.55, 0.85, 1.0) * a, a);
-}
-`;
-
-function DeepLayers() {
-  const group = useRef<THREE.Group>(null);
-  const uniforms = useMemo(() => ({ uProg: { value: -10 } }), []);
-  const { points, lines } = useMemo(() => {
-    let seed = 23;
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const nodes: THREE.Vector3[][] = [];
-    const pos: number[] = [], layer: number[] = [];
-    for (let l = 0; l < PLANES; l++) {
-      const x = (l - (PLANES - 1) / 2) * PLANE_GAP;
-      nodes.push([]);
-      for (let i = 0; i < GRID; i++) for (let j = 0; j < GRID; j++) {
-        const v = new THREE.Vector3(x, (i - (GRID - 1) / 2) * GRID_GAP, (j - (GRID - 1) / 2) * GRID_GAP);
-        nodes[l].push(v);
-        pos.push(v.x, v.y, v.z);
-        layer.push(l / (PLANES - 1));
-      }
-    }
-    const lpos: number[] = [], llayer: number[] = [];
-    for (let l = 0; l < PLANES - 1; l++) {
-      for (let k = 0; k < PLANE_LINKS; k++) {
-        const a = nodes[l][Math.floor(rand() * nodes[l].length)];
-        const b = nodes[l + 1][Math.floor(rand() * nodes[l + 1].length)];
-        lpos.push(a.x, a.y, a.z, b.x, b.y, b.z);
-        llayer.push(l / (PLANES - 1), (l + 1) / (PLANES - 1));
-      }
-    }
-    const make = (p: number[], ly: number[]) => {
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-      g.setAttribute('aLayer', new THREE.Float32BufferAttribute(ly, 1));
-      return g;
-    };
-    return { points: make(pos, layer), lines: make(lpos, llayer) };
-  }, []);
-
-  const yaw = useMemo(() => new THREE.Quaternion().setFromEuler(new THREE.Euler(0.15, 0.7, 0)), []);
-  useFrame(({ camera, controls }) => {
-    // Stays behind the network from wherever it is viewed, at a fixed oblique angle
-    const target = (controls as unknown as { target?: THREE.Vector3 } | null)?.target ?? new THREE.Vector3();
-    const g = group.current!;
-    g.position.copy(target).addScaledVector(camera.getWorldDirection(new THREE.Vector3()), 48);
-    g.quaternion.copy(camera.quaternion).multiply(yaw);
-    // Same 12s cycle as the radial forward pass: input layer to output layer over its 4s sweep
-    const phase = (clock.t + 8) % 12;
-    uniforms.uProg.value = phase < 4 ? -0.2 + (phase / 4) * 1.4 : -10;
-  });
-
-  return (
-    <group ref={group}>
-      <points geometry={points} frustumCulled={false} raycast={() => null}>
-        <shaderMaterial uniforms={uniforms} vertexShader={layerVertex} fragmentShader={layerPointFragment} {...additive} />
-      </points>
-      <lineSegments geometry={lines} frustumCulled={false} raycast={() => null}>
-        <shaderMaterial uniforms={uniforms} vertexShader={layerVertex} fragmentShader={layerLineFragment} {...additive} />
-      </lineSegments>
-    </group>
-  );
-}
-
 export function Backdrop() {
   const uniforms = useMemo(() => ({ uTime: { value: 0 }, uHot: { value: -10 } }), []);
 
@@ -283,7 +187,6 @@ export function Backdrop() {
       <points geometry={bokeh} frustumCulled={false} raycast={() => null}>
         <shaderMaterial uniforms={uniforms} vertexShader={bokehVertex} fragmentShader={bokehFragment} {...additive} />
       </points>
-      <DeepLayers />
       <points geometry={embedding} frustumCulled={false} raycast={() => null}>
         <shaderMaterial uniforms={uniforms} vertexShader={embedVertex} fragmentShader={embedFragment} {...additive} />
       </points>

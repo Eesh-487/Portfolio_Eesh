@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
-import { network, fibers, waveX, clock, selection, branchDelay, axonCurve, SECTIONS, sectionOf, Bezier } from './networkLayout';
+import { network, fibers, waveR, clock, FOG_GLSL, POINT_SCALE, selection, branchDelay, axonCurve, SECTIONS, sectionOf, Bezier } from './networkLayout';
 import { taperedTube } from './dendrites';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -18,31 +18,36 @@ const onPath = (id: string, focus: string | null | undefined) => branchDelay(id,
 
 // Dim structural pathways that brighten as the forward-pass wave crosses them
 const edgeVertex = /* glsl */ `
-varying float vX;
+${FOG_GLSL}
+varying float vX, vFog;
 void main(){
-  vX = position.x;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vX = length(position);
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vFog = fogAt(-mv.z);
+  gl_Position = projectionMatrix * mv;
 }
 `;
 const edgeFragment = /* glsl */ `
 uniform float uWave, uIntro, uFocus;
-varying float vX;
+varying float vX, vFog;
 void main(){
-  float a = (0.07 + 0.18 * exp(-pow((vX - uWave) / 3.0, 2.0))) * uIntro * mix(1.0, 0.2, uFocus);
+  float a = (0.07 + 0.18 * exp(-pow((vX - uWave) / 3.0, 2.0))) * uIntro * mix(1.0, 0.2, uFocus) * vFog;
   gl_FragColor = vec4(vec3(0.5, 0.8, 0.9) * a, a);
 }
 `;
 
 // Labelled connections: tapered, translucent "thorn" fibres in the same language as the dendrites
 const fiberVertex = /* glsl */ `
+${FOG_GLSL}
 attribute float aDist;
-varying float vDist;
+varying float vDist, vFog;
 varying vec3 vNormal;
 varying vec3 vView;
 void main(){
   vDist = aDist;
   vNormal = normalize(normalMatrix * normal);
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vFog = fogAt(-mv.z);
   vView = normalize(-mv.xyz);
   gl_Position = projectionMatrix * mv;
 }
@@ -50,7 +55,7 @@ void main(){
 const fiberFragment = /* glsl */ `
 uniform vec3 uFrom, uTo;
 uniform float uLit, uDim, uIntro, uTime, uFan, uSplit;
-varying float vDist;
+varying float vDist, vFog;
 varying vec3 vNormal;
 varying vec3 vView;
 void main(){
@@ -61,20 +66,23 @@ void main(){
   float i = (mix(0.3, 1.15, uLit) * (0.45 + fres) + shimmer) * mix(1.0, 0.15, uDim) * uIntro;
   // Siblings share the axon segment exactly (up to uSplit); split its light between them
   i *= mix(1.0 / uFan, 1.0, smoothstep(uSplit, uSplit + 0.12, vDist));
+  // A lit path stays clear of the depth fade
+  i *= mix(vFog, 1.0, uLit);
   gl_FragColor = vec4(mix(col, vec3(1.0), uLit * 0.15) * i, i);
 }
 `;
 
 // Unlabelled background neurons: small soft cells with a slow, irregular glow
 const neuronVertex = /* glsl */ `
+${FOG_GLSL}
 uniform float uTime, uWave, uIntro, uFocus;
 attribute float aSeed;
 varying float vI;
 void main(){
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  float fire = exp(-pow((position.x - uWave) / 2.5, 2.0));
-  vI = (0.38 + 0.12 * sin(uTime * 0.7 + aSeed * 6.28) * sin(uTime * 0.43 + aSeed * 3.1) + fire * 0.7) * uIntro * mix(1.0, 0.3, uFocus);
-  gl_PointSize = (2.2 + fire) * (220.0 / -mv.z);
+  float fire = exp(-pow((length(position) - uWave) / 2.5, 2.0));
+  vI = (0.38 + 0.12 * sin(uTime * 0.7 + aSeed * 6.28) * sin(uTime * 0.43 + aSeed * 3.1) + fire * 0.7) * uIntro * mix(1.0, 0.3, uFocus) * fogAt(-mv.z);
+  gl_PointSize = (2.2 + fire) * (220.0 / -mv.z) * ${POINT_SCALE};
   gl_Position = projectionMatrix * mv;
 }
 `;
@@ -93,6 +101,7 @@ void main(){
 
 // Signals travelling along the curved fibres (cubic bezier evaluated per vertex)
 const pulseVertex = /* glsl */ `
+${FOG_GLSL}
 uniform float uTime, uWave, uIntro, uFocus;
 attribute vec3 aC1, aC2, aP3;
 attribute float aOffset, aSpeed;
@@ -102,9 +111,9 @@ void main(){
   float u = 1.0 - t;
   vec3 p = u*u*u*position + 3.0*u*u*t*aC1 + 3.0*u*t*t*aC2 + t*t*t*aP3;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
-  float fire = exp(-pow((p.x - uWave) / 3.0, 2.0));
-  vI = pow(sin(3.14159 * t), 2.0) * (0.4 + fire) * uIntro * mix(1.0, 0.35, uFocus);
-  gl_PointSize = (0.9 + fire * 0.8) * (180.0 / -mv.z);
+  float fire = exp(-pow((length(p) - uWave) / 3.0, 2.0));
+  vI = pow(sin(3.14159 * t), 2.0) * (0.4 + fire) * uIntro * mix(1.0, 0.35, uFocus) * fogAt(-mv.z);
+  gl_PointSize = (0.9 + fire * 0.8) * (180.0 / -mv.z) * ${POINT_SCALE};
   gl_Position = projectionMatrix * mv;
 }
 `;
@@ -119,6 +128,7 @@ void main(){
 `;
 
 const additive = { blending: THREE.AdditiveBlending, transparent: true, depthWrite: false };
+const ORIGIN = new THREE.Vector3();
 
 function seeded(seed: number) {
   return () => {
@@ -158,7 +168,7 @@ function thornFiber(curve: Bezier, trunk: Bezier | null, rand: () => number) {
 
 export function Synapses() {
   const uniforms = useMemo(
-    () => ({ uTime: { value: 0 }, uWave: { value: 999 }, uIntro: { value: 0 }, uFocus: { value: 0 } }),
+    () => ({ uTime: { value: 0 }, uWave: { value: 999 }, uIntro: { value: 0 }, uFocus: { value: 0 }, uCamDist: { value: 31 } }),
     []
   );
   const edgeGeometry = useMemo(() => {
@@ -193,6 +203,7 @@ export function Synapses() {
           uTime: uniforms.uTime,
           uFan: { value: fan },
           uSplit: { value: split },
+          uCamDist: uniforms.uCamDist,
         },
       };
     });
@@ -216,6 +227,7 @@ export function Synapses() {
               uTime: uniforms.uTime,
               uFan: { value: 1 },
               uSplit: { value: 0 },
+              uCamDist: uniforms.uCamDist,
             },
           };
         }),
@@ -249,14 +261,15 @@ export function Synapses() {
     return g;
   }, []);
 
-  useFrame(() => {
+  useFrame(({ camera, controls }) => {
     const t = clock.t;
     const { hoveredProjectId, selectedProject, motionPaused } = useAppStore.getState();
     const focus = hoveredProjectId ?? selectedProject?.id ?? null;
     const elapsed = motionPaused ? Infinity : (performance.now() - selection.at) / 1000;
+    uniforms.uCamDist.value = camera.position.distanceTo((controls as unknown as { target?: THREE.Vector3 } | null)?.target ?? ORIGIN);
 
     uniforms.uTime.value = t;
-    uniforms.uWave.value = waveX(t);
+    uniforms.uWave.value = waveR(t);
     uniforms.uIntro.value = motionPaused ? 1 : THREE.MathUtils.clamp((t - INTRO_START) / 1.0, 0, 1);
     uniforms.uFocus.value = THREE.MathUtils.lerp(uniforms.uFocus.value, focus ? 1 : 0, 0.1);
 

@@ -5,24 +5,27 @@ import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
 import { useAppStore } from '../../store/useAppStore';
-import { network, clock, selection, toView } from './networkLayout';
+import { network, clock, selection, LAYER_R } from './networkLayout';
 
-const ORIGIN = new THREE.Vector3();
+// Resting view: whole network in frame, nudged down to clear the identity panel at the top
+const REST = new THREE.Vector3(0, 3, 0);
+const REST_DISTANCE = 54;
 const PANEL_WIDTH = 460; // desktop detail panel, keep the focused neuron left of it
+const IDLE_BEFORE_ROTATE = 4000; // ms after the last drag before the slow orbit resumes
 const HALF_FOV = Math.tan(THREE.MathUtils.degToRad(55 / 2));
 
-// Distance that keeps the whole network on screen. Turned for portrait it is ~54 tall and ~28 wide.
-function overviewDistance(aspect: number, portrait: boolean) {
-  return portrait ? Math.max(27, 14 / aspect) / HALF_FOV : 31;
+// Distance that keeps the whole network on screen; narrow screens are bound by width
+function overviewDistance(aspect: number) {
+  return Math.max(REST_DISTANCE, (LAYER_R[4] * 1.1) / (HALF_FOV * Math.min(aspect, 1)));
 }
 
 // What to frame for a selection: a neuron with outgoing branches (you, a section) is framed
 // together with what it leads to; a single output is framed on its own
-function frameFor(id: string, aspect: number, portrait: boolean) {
+function frameFor(id: string, aspect: number) {
   const children = id === 'about-me'
     ? network.links.filter(([a]) => a === id).map(([, b]) => b)
     : network.children.get(id) ?? [];
-  const points = [id, ...children].map((c) => toView(network.nodes.get(c)!, portrait));
+  const points = [id, ...children].map((c) => network.nodes.get(c)!.clone());
   const center = points.reduce((m, v) => m.add(v), new THREE.Vector3()).divideScalar(points.length);
   const spread = Math.max(...points.map((v) => v.distanceTo(center)));
   // Narrow screens are bound by width, not height
@@ -39,6 +42,8 @@ export function CameraRig() {
   const gliding = useRef(true);
   const offset = useRef(0);
   const lift = useRef(0);
+  const dragging = useRef(false);
+  const lastDrag = useRef(-Infinity);
 
   useEffect(() => {
     gliding.current = true;
@@ -79,12 +84,15 @@ export function CameraRig() {
     } else cam.clearViewOffset();
 
     const c = controls.current;
-    if (!c || !gliding.current) return;
+    if (!c) return;
+    // Slow orbit while idle: off when something is in focus, while dragging, and when motion is paused
+    c.autoRotate = !selected && !motionPaused && !dragging.current && !useAppStore.getState().hoveredProjectId
+      && performance.now() - lastDrag.current > IDLE_BEFORE_ROTATE;
+    if (!gliding.current) return;
     const aspect = size.width / size.height;
-    const portrait = aspect < 1;
-    const frame = node && selected ? frameFor(selected.id, aspect, portrait) : null;
-    const target = frame?.center ?? ORIGIN;
-    const distance = frame?.distance ?? overviewDistance(aspect, portrait);
+    const frame = node && selected ? frameFor(selected.id, aspect) : null;
+    const target = frame?.center ?? REST;
+    const distance = frame?.distance ?? overviewDistance(aspect);
     c.target.lerp(target, k);
     const want = target.clone().addScaledVector(camera.position.clone().sub(c.target).normalize(), distance);
     camera.position.lerp(want, k);
@@ -100,8 +108,10 @@ export function CameraRig() {
       enablePan={false}
       rotateSpeed={0.5}
       minDistance={6}
-      maxDistance={90}
-      onStart={() => (gliding.current = false)}
+      maxDistance={120}
+      autoRotateSpeed={0.4}
+      onStart={() => { gliding.current = false; dragging.current = true; }}
+      onEnd={() => { dragging.current = false; lastDrag.current = performance.now(); }}
     />
   );
 }

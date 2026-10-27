@@ -2,11 +2,16 @@ import * as THREE from 'three';
 import { projects } from '../../data/projects';
 import { Project } from '../../types/project';
 
-// Input (me) → hidden (sections) → output (work), with unlabeled hidden layers between
+// Radial in 3D: input (me) at the centre → sections → work on the outer shell, unlabeled hidden shells between
 export const HUB_IDS = ['projects', 'research', 'experience', 'hackathons'];
-export const LAYER_X = [-22, -11, 0, 11, 22];
-const HIDDEN_PER_LAYER = [10, 22, 16, 22, 14];
-const EDGE_DENSITY = 0.2;
+export const LAYER_R = [0, 5.5, 11, 16.5, 22];
+const HIDDEN_PER_LAYER = [10, 30, 45, 60, 70];
+const EDGE_DENSITY = 0.5;
+// Tetrahedron corners: four directions as far apart as possible in 3D. Turned so each sits at a
+// different height, so two sections never line up behind each other while the view orbits around Y.
+const HUB_DIRS = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map(([x, y, z]) =>
+  new THREE.Vector3(x, y, z).normalize().applyAxisAngle(new THREE.Vector3(0, 0, 1), 1.117)
+);
 
 // One colour per section, used by neurons, links, hover cards, panels and navigation
 export const SECTIONS = {
@@ -18,6 +23,15 @@ export const SECTIONS = {
 } as const;
 export type SectionId = keyof typeof SECTIONS;
 
+// Render resolution: on larger screens at least 2x (supersampled on standard displays, so thin fibres stay
+// crisp) and up to 3x on dense ones; phones stay at native up to 2x for battery and frame rate
+const DEVICE_DPR = Math.max(window.devicePixelRatio || 1, 1);
+export const RENDER_DPR = window.matchMedia('(min-width: 768px)').matches
+  ? Math.min(Math.max(DEVICE_DPR, 2), 3)
+  : Math.min(DEVICE_DPR, 2);
+// gl_PointSize is in device pixels; scale point sprites so they keep the size they were tuned at (native, up to 2x)
+export const POINT_SCALE = (RENDER_DPR / Math.min(DEVICE_DPR, 2)).toFixed(3);
+
 // Shared animation clock so motion can be paused from the UI
 export const clock = { t: 0 };
 
@@ -27,18 +41,23 @@ export function introDelay(id: string) {
   return HUB_IDS.includes(id) ? 0.6 : 1.0;
 }
 
-// Forward-pass wave: a 4s sweep every 12s; far off-screen the rest of the time
-export function waveX(t: number) {
-  const phase = (t + 8) % 12;
-  return phase < 4 ? -28 + (phase / 4) * 56 : 999;
+// Depth fade: things beyond the orbit centre fade back so near and far sides read apart.
+// 0 in front of the centre, up to 0.8 at the back of the network.
+export const FOG_GLSL = /* glsl */ `
+uniform float uCamDist;
+float fogAt(float depth){ return 1.0 - 0.8 * smoothstep(uCamDist - 4.0, uCamDist + 22.0, depth); }
+`;
+export function fogAmount(depth: number, camDist: number) {
+  return 0.8 * THREE.MathUtils.smoothstep(depth, camDist - 4, camDist + 22);
 }
 
-// Portrait screens turn the network a quarter turn so it reads top-to-bottom: input on top, outputs below
-export const PORTRAIT_ROTATION = -Math.PI / 2;
-const PORTRAIT_QUAT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), PORTRAIT_ROTATION);
+// Neurons an agent has just visited ("tool call"), by id → clock time of the visit
+export const agentHits = new Map<string, number>();
 
-export function toView(v: THREE.Vector3, portrait: boolean) {
-  return portrait ? v.clone().applyQuaternion(PORTRAIT_QUAT) : v.clone();
+// Forward-pass wave: a 4s outward sweep (by distance from centre) every 12s; far off the rest of the time
+export function waveR(t: number) {
+  const phase = (t + 8) % 12;
+  return phase < 4 ? -3 + (phase / 4) * 31 : 999;
 }
 
 export function neuronRadius(p: Project) {
@@ -54,8 +73,12 @@ function seeded(seed: number) {
   };
 }
 
-function onRing(x: number, r: number, a: number) {
-  return new THREE.Vector3(x, Math.sin(a) * r, Math.cos(a) * r);
+// `dir` tilted by `cone` radians toward angle `a` around it
+function aroundDir(dir: THREE.Vector3, cone: number, a: number) {
+  const u = new THREE.Vector3().crossVectors(dir, Math.abs(dir.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)).normalize();
+  const v = new THREE.Vector3().crossVectors(dir, u);
+  const side = u.multiplyScalar(Math.cos(a)).addScaledVector(v, Math.sin(a));
+  return dir.clone().multiplyScalar(Math.cos(cone)).addScaledVector(side, Math.sin(cone));
 }
 
 export type Bezier = [THREE.Vector3, THREE.Vector3, THREE.Vector3, THREE.Vector3];
@@ -77,12 +100,14 @@ function build() {
   const links: [string, string][] = [];
   const linked = (a: string, b: string) => links.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
-  nodes.set('about-me', new THREE.Vector3(LAYER_X[0], 0, 0));
+  nodes.set('about-me', new THREE.Vector3());
+  const layerOf = new Map<THREE.Vector3, number>([[nodes.get('about-me')!, 0]]);
   const placed = new Set(['about-me', ...HUB_IDS]);
 
   HUB_IDS.forEach((id, i) => {
-    const a = (i / HUB_IDS.length) * Math.PI * 2 + Math.PI / 4;
-    nodes.set(id, onRing(LAYER_X[2], 7.5, a));
+    const dir = HUB_DIRS[i];
+    nodes.set(id, dir.clone().multiplyScalar(LAYER_R[2]));
+    layerOf.set(nodes.get(id)!, 2);
     section.set(id, id as SectionId);
     links.push(['about-me', id]);
     const kids = (byId.get(id)?.connections ?? []).filter((c) => !placed.has(c) && byId.has(c));
@@ -90,7 +115,10 @@ function build() {
     kids.forEach((c, j) => {
       placed.add(c);
       section.set(c, id as SectionId);
-      nodes.set(c, onRing(LAYER_X[4], 12.5, a + (j - (kids.length - 1) / 2) * 0.3));
+      // Outputs fan out in a cone around their section's direction
+      const cone = kids.length > 1 ? 0.4 : 0;
+      nodes.set(c, aroundDir(dir, cone, (j / kids.length) * Math.PI * 2).multiplyScalar(LAYER_R[4]));
+      layerOf.set(nodes.get(c)!, 4);
       links.push([id, c]);
     });
   });
@@ -103,25 +131,30 @@ function build() {
     }
   }
 
-  const layers: THREE.Vector3[][] = LAYER_X.map(() => []);
-  for (const v of nodes.values()) layers[LAYER_X.indexOf(v.x)].push(v);
+  const layers: THREE.Vector3[][] = LAYER_R.map(() => []);
+  for (const v of nodes.values()) layers[layerOf.get(v)!].push(v);
   const hidden: THREE.Vector3[] = [];
-  LAYER_X.forEach((x, l) => {
+  LAYER_R.forEach((r, l) => {
     for (let k = 0; k < HIDDEN_PER_LAYER[l]; k++) {
-      const v = onRing(x + (rand() - 0.5) * 1.5, 2 + rand() * (l === 4 ? 13 : 9), rand() * Math.PI * 2);
+      // Uniform random direction on the sphere
+      const z = rand() * 2 - 1;
+      const a = rand() * Math.PI * 2;
+      const dir = new THREE.Vector3(Math.sqrt(1 - z * z) * Math.cos(a), Math.sqrt(1 - z * z) * Math.sin(a), z);
+      const v = dir.multiplyScalar(Math.max(r, 3) + (rand() - 0.5) * 3);
       layers[l].push(v);
       hidden.push(v);
     }
   });
 
-  // Background pathways curve along the layer axis like fibre bundles
+  // Background pathways radiate outward like fibre bundles; only between neighbouring directions
   const edges: Bezier[] = [];
   for (let l = 0; l < layers.length - 1; l++) {
     for (const a of layers[l]) for (const b of layers[l + 1]) {
+      if (a.length() > 1 && a.clone().normalize().dot(b.clone().normalize()) < 0.85) continue;
       if (rand() >= EDGE_DENSITY) continue;
-      const dx = (b.x - a.x) * 0.45;
-      const jitter = () => new THREE.Vector3(0, (rand() - 0.5) * 1.6, (rand() - 0.5) * 1.6);
-      edges.push([a, a.clone().add(new THREE.Vector3(dx, 0, 0)).add(jitter()), b.clone().add(new THREE.Vector3(-dx, 0, 0)).add(jitter()), b]);
+      const d = b.clone().sub(a).multiplyScalar(0.35);
+      const jitter = () => new THREE.Vector3((rand() - 0.5) * 1.6, (rand() - 0.5) * 1.6, (rand() - 0.5) * 1.6);
+      edges.push([a, a.clone().add(d).add(jitter()), b.clone().sub(d).add(jitter()), b]);
     }
   }
 
@@ -149,13 +182,14 @@ export function axonOf(id: string): { dir: THREE.Vector3; length: number } | nul
   const pos = network.nodes.get(id);
   if (!p || !pos) return null;
   const r = neuronRadius(p);
+  if (id === 'about-me') return null; // radiates to every side from the soma itself
   if (LAYER_OF(id) < 2) {
     const targets = network.links.filter(([a]) => a === id).map(([, b]) => network.nodes.get(b)!);
     const mean = targets.reduce((m, v) => m.add(v), new THREE.Vector3()).divideScalar(targets.length || 1);
     return { dir: mean.sub(pos).normalize(), length: r * 2.2 };
   }
   if (!p.featured) return null;
-  return { dir: new THREE.Vector3(1, pos.y * 0.05, pos.z * 0.05).normalize(), length: r * 2.4 };
+  return { dir: pos.clone().normalize(), length: r * 2.4 };
 }
 
 // The axon itself: soma membrane → tip, ending tangent to `dir` so fibres continue it smoothly
@@ -186,7 +220,7 @@ export const fibers: { a: string; b: string; curve: Bezier; trunk: Bezier | null
   const start = tip ?? pa.clone().addScaledVector(dir, neuronRadius(byId.get(a)!) * 1.05);
   const end = pb.clone().addScaledVector(dir, -neuronRadius(byId.get(b)!) * 1.05);
   const len = start.distanceTo(end);
-  const flow = new THREE.Vector3(1, 0, 0).lerp(dir, 0.5).normalize();
+  const flow = pb.clone().normalize().lerp(dir, 0.5).normalize();
   // Leaving an axon, the fibre continues the axon's direction so branches split smoothly
   const leave = tip ? axonOf(a)!.dir : flow;
   return {

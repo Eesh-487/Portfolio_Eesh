@@ -1,11 +1,50 @@
 import React from 'react';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
-import { network, clock, SECTIONS, sectionOf, HUB_IDS } from './networkLayout';
+import { network, clock, SECTIONS, sectionOf, HUB_IDS, LAYER_R, SectionId, POINT_SCALE } from './networkLayout';
+import { useAppStore } from '../../store/useAppStore';
 
 const BOKEH = 46;
+const PLANES = 7;
+const GRID = 7;
+const PLANE_GAP = 17;
+const GRID_GAP = 4.6;
+const PLANE_LINKS = 12; // faint connections between each pair of neighbouring planes
+const EMBED_CLUSTERS = 14;
+const EMBED_POINTS = 4000;
+const SECTION_IDS = Object.keys(SECTIONS) as SectionId[];
+
+// Embedding space: clusters of tiny points around the network, like a UMAP plot of what the model
+// has learned. Each cluster takes a section's colour and lights up while that section is in focus.
+const embedVertex = /* glsl */ `
+uniform float uTime, uHot;
+attribute vec3 aColor;
+attribute float aSection, aSeed;
+varying vec3 vColor;
+varying float vA;
+void main(){
+  float hot = 1.0 - step(0.5, abs(aSection - uHot));
+  vec3 p = position + vec3(sin(uTime * 0.1 + aSeed * 6.28), cos(uTime * 0.08 + aSeed * 4.0), sin(uTime * 0.07 + aSeed * 2.0)) * 0.4;
+  vec4 mv = modelViewMatrix * vec4(p, 1.0);
+  vColor = aColor;
+  vA = mix(0.45, 0.95, hot) * (0.5 + 0.5 * aSeed);
+  gl_PointSize = min((1.6 + hot * 0.8) * (170.0 / -mv.z), 6.0) * ${POINT_SCALE};
+  gl_Position = projectionMatrix * mv;
+}
+`;
+const embedFragment = /* glsl */ `
+varying vec3 vColor;
+varying float vA;
+void main(){
+  float d = length(gl_PointCoord - 0.5);
+  if (d > 0.5) discard;
+  float a = smoothstep(0.5, 0.1, d) * vA;
+  gl_FragColor = vec4(vColor * a, a);
+  #include <colorspace_fragment>
+}
+`;
 
 // Out-of-focus cells far behind the network: soft discs with a faint rim, like a
 // microscope's shallow depth of field. They drift slowly and parallax with the camera.
@@ -17,7 +56,7 @@ void main(){
   vSeed = aSeed;
   vec3 p = position + vec3(sin(uTime * 0.05 + aSeed * 6.28), cos(uTime * 0.04 + aSeed * 4.0), 0.0) * 0.8;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
-  gl_PointSize = aSize * (300.0 / -mv.z);
+  gl_PointSize = aSize * (300.0 / -mv.z) * ${POINT_SCALE};
   gl_Position = projectionMatrix * mv;
 }
 `;
@@ -52,10 +91,155 @@ void main(){
 }
 `;
 
+// Barely-there spheres at the section and work layers: only their rims show, hinting at the layering
+const shellVertex = /* glsl */ `
+varying vec3 vNormal;
+varying vec3 vView;
+void main(){
+  vNormal = normalize(normalMatrix * normal);
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vView = normalize(-mv.xyz);
+  gl_Position = projectionMatrix * mv;
+}
+`;
+const shellFragment = /* glsl */ `
+varying vec3 vNormal;
+varying vec3 vView;
+void main(){
+  float a = pow(1.0 - abs(dot(normalize(vNormal), normalize(vView))), 4.0) * 0.06;
+  gl_FragColor = vec4(vec3(0.6, 0.8, 0.95) * a, a);
+  #include <colorspace_fragment>
+}
+`;
+
 const additive = { blending: THREE.AdditiveBlending, transparent: true, depthWrite: false };
 
+// Deep network layers: a row of node grids behind the network, seen at an angle like a textbook
+// diagram. Each forward-pass sweep runs through the grids one layer at a time.
+const layerVertex = /* glsl */ `
+uniform float uProg;
+attribute float aLayer;
+varying float vI;
+void main(){
+  float pass = exp(-pow((aLayer - uProg) / 0.1, 2.0));
+  vI = 0.3 + pass * 0.7;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  gl_PointSize = (1.8 + pass * 1.2) * (220.0 / -mv.z) * ${POINT_SCALE};
+  gl_Position = projectionMatrix * mv;
+}
+`;
+const layerPointFragment = /* glsl */ `
+varying float vI;
+void main(){
+  float d = length(gl_PointCoord - 0.5);
+  if (d > 0.5) discard;
+  float a = smoothstep(0.5, 0.15, d) * vI;
+  gl_FragColor = vec4(vec3(0.55, 0.85, 1.0) * a, a);
+}
+`;
+const layerLineFragment = /* glsl */ `
+varying float vI;
+void main(){
+  float a = vI * 0.2;
+  gl_FragColor = vec4(vec3(0.55, 0.85, 1.0) * a, a);
+}
+`;
+
+function DeepLayers() {
+  const group = useRef<THREE.Group>(null);
+  const uniforms = useMemo(() => ({ uProg: { value: -10 } }), []);
+  const { points, lines } = useMemo(() => {
+    let seed = 23;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const nodes: THREE.Vector3[][] = [];
+    const pos: number[] = [], layer: number[] = [];
+    for (let l = 0; l < PLANES; l++) {
+      const x = (l - (PLANES - 1) / 2) * PLANE_GAP;
+      nodes.push([]);
+      for (let i = 0; i < GRID; i++) for (let j = 0; j < GRID; j++) {
+        const v = new THREE.Vector3(x, (i - (GRID - 1) / 2) * GRID_GAP, (j - (GRID - 1) / 2) * GRID_GAP);
+        nodes[l].push(v);
+        pos.push(v.x, v.y, v.z);
+        layer.push(l / (PLANES - 1));
+      }
+    }
+    const lpos: number[] = [], llayer: number[] = [];
+    for (let l = 0; l < PLANES - 1; l++) {
+      for (let k = 0; k < PLANE_LINKS; k++) {
+        const a = nodes[l][Math.floor(rand() * nodes[l].length)];
+        const b = nodes[l + 1][Math.floor(rand() * nodes[l + 1].length)];
+        lpos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+        llayer.push(l / (PLANES - 1), (l + 1) / (PLANES - 1));
+      }
+    }
+    const make = (p: number[], ly: number[]) => {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+      g.setAttribute('aLayer', new THREE.Float32BufferAttribute(ly, 1));
+      return g;
+    };
+    return { points: make(pos, layer), lines: make(lpos, llayer) };
+  }, []);
+
+  const yaw = useMemo(() => new THREE.Quaternion().setFromEuler(new THREE.Euler(0.15, 0.7, 0)), []);
+  useFrame(({ camera, controls }) => {
+    // Stays behind the network from wherever it is viewed, at a fixed oblique angle
+    const target = (controls as unknown as { target?: THREE.Vector3 } | null)?.target ?? new THREE.Vector3();
+    const g = group.current!;
+    g.position.copy(target).addScaledVector(camera.getWorldDirection(new THREE.Vector3()), 48);
+    g.quaternion.copy(camera.quaternion).multiply(yaw);
+    // Same 12s cycle as the radial forward pass: input layer to output layer over its 4s sweep
+    const phase = (clock.t + 8) % 12;
+    uniforms.uProg.value = phase < 4 ? -0.2 + (phase / 4) * 1.4 : -10;
+  });
+
+  return (
+    <group ref={group}>
+      <points geometry={points} frustumCulled={false} raycast={() => null}>
+        <shaderMaterial uniforms={uniforms} vertexShader={layerVertex} fragmentShader={layerPointFragment} {...additive} />
+      </points>
+      <lineSegments geometry={lines} frustumCulled={false} raycast={() => null}>
+        <shaderMaterial uniforms={uniforms} vertexShader={layerVertex} fragmentShader={layerLineFragment} {...additive} />
+      </lineSegments>
+    </group>
+  );
+}
+
 export function Backdrop() {
-  const uniforms = useMemo(() => ({ uTime: { value: 0 } }), []);
+  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uHot: { value: -10 } }), []);
+
+  const embedding = useMemo(() => {
+    let seed = 97;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const gauss = () => Math.sqrt(-2 * Math.log(rand() + 1e-9)) * Math.cos(2 * Math.PI * rand());
+    // Cluster centres sit in a shell beyond the work layer, so they never crowd the labelled neurons
+    const clusters = Array.from({ length: EMBED_CLUSTERS }, (_, i) => {
+      const z = rand() * 2 - 1;
+      const a = rand() * Math.PI * 2;
+      const dir = new THREE.Vector3(Math.sqrt(1 - z * z) * Math.cos(a), Math.sqrt(1 - z * z) * Math.sin(a), z);
+      const section = i % SECTION_IDS.length;
+      return {
+        center: dir.multiplyScalar(30 + rand() * 12),
+        spread: 2.5 + rand() * 3,
+        section,
+        color: new THREE.Color(SECTIONS[SECTION_IDS[section]].color).lerp(new THREE.Color('#8aa0b8'), 0.45),
+      };
+    });
+    const pos: number[] = [], color: number[] = [], sec: number[] = [], seeds: number[] = [];
+    for (let i = 0; i < EMBED_POINTS; i++) {
+      const c = clusters[i % EMBED_CLUSTERS];
+      pos.push(c.center.x + gauss() * c.spread, c.center.y + gauss() * c.spread, c.center.z + gauss() * c.spread);
+      color.push(c.color.r, c.color.g, c.color.b);
+      sec.push(c.section);
+      seeds.push(rand());
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('aColor', new THREE.Float32BufferAttribute(color, 3));
+    g.setAttribute('aSection', new THREE.Float32BufferAttribute(sec, 1));
+    g.setAttribute('aSeed', new THREE.Float32BufferAttribute(seeds, 1));
+    return g;
+  }, []);
 
   const bokeh = useMemo(() => {
     let seed = 41;
@@ -89,6 +273,9 @@ export function Backdrop() {
 
   useFrame(() => {
     uniforms.uTime.value = clock.t;
+    const { hoveredProjectId, selectedProject } = useAppStore.getState();
+    const focus = hoveredProjectId ?? selectedProject?.id;
+    uniforms.uHot.value = focus ? SECTION_IDS.indexOf(sectionOf(focus)) : -10;
   });
 
   return (
@@ -96,6 +283,16 @@ export function Backdrop() {
       <points geometry={bokeh} frustumCulled={false} raycast={() => null}>
         <shaderMaterial uniforms={uniforms} vertexShader={bokehVertex} fragmentShader={bokehFragment} {...additive} />
       </points>
+      <DeepLayers />
+      <points geometry={embedding} frustumCulled={false} raycast={() => null}>
+        <shaderMaterial uniforms={uniforms} vertexShader={embedVertex} fragmentShader={embedFragment} {...additive} />
+      </points>
+      {[LAYER_R[2], LAYER_R[4]].map((r) => (
+        <mesh key={r} raycast={() => null}>
+          <sphereGeometry args={[r, 64, 48]} />
+          <shaderMaterial vertexShader={shellVertex} fragmentShader={shellFragment} {...additive} />
+        </mesh>
+      ))}
       {pools.map(({ id, position, size, uniforms: u }) => (
         <Billboard key={id} position={position}>
           <mesh raycast={() => null}>

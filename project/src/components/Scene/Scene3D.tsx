@@ -1,11 +1,13 @@
 import React from 'react';
 import { Suspense, useEffect, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Neuron } from './Neuron';
 import { Synapses } from './Synapses';
 import { Backdrop } from './Backdrop';
 import { CameraRig } from './CameraRig';
-import { network, PORTRAIT_ROTATION } from './networkLayout';
+import { Agents } from './Agents';
+import { network, RENDER_DPR } from './networkLayout';
 import { projects, matchesSearch } from '../../data/projects';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -16,25 +18,30 @@ interface Scene3DProps {
 function SceneContent() {
   const searchTerm = useAppStore((state) => state.searchTerm);
   const searching = searchTerm.length > 1;
-  const portrait = useThree((s) => s.size.width < s.size.height);
+  // Bloom costs a full-screen pass or two; keep it to larger screens
+  const bloom = window.matchMedia('(min-width: 768px)').matches;
 
   return (
     <>
       <CameraRig />
-      <group rotation={[0, 0, portrait ? PORTRAIT_ROTATION : 0]}>
-        <Backdrop />
-        <Synapses />
+      <Backdrop />
+      <Synapses />
+      <Agents />
 
-        {projects.filter((p) => network.nodes.has(p.id)).map((project) => (
-          <Neuron
-            key={project.id}
-            project={project}
-            portrait={portrait}
-            searching={searching}
-            matched={searching && matchesSearch(project, searchTerm)}
-          />
-        ))}
-      </group>
+      {projects.filter((p) => network.nodes.has(p.id)).map((project) => (
+        <Neuron
+          key={project.id}
+          project={project}
+          searching={searching}
+          matched={searching && matchesSearch(project, searchTerm)}
+        />
+      ))}
+
+      {bloom && (
+        <EffectComposer>
+          <Bloom mipmapBlur intensity={0.55} luminanceThreshold={0.45} luminanceSmoothing={0.3} />
+        </EffectComposer>
+      )}
     </>
   );
 }
@@ -65,7 +72,7 @@ export function Scene3D({ onLoaded }: Scene3DProps) {
       />
       <div className="absolute inset-0 opacity-[0.035] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
       <Canvas
-        dpr={[1, 2]}
+        dpr={RENDER_DPR}
         camera={{
           position: [-8, 9, 62],
           fov: 55,

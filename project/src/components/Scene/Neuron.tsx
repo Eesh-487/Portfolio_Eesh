@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { Project } from '../../types/project';
 import { useAppStore } from '../../store/useAppStore';
 import {
-  HUB_IDS, network, waveX, clock, selection, branchDelay, SECTIONS, sectionOf, isRelated, introDelay, neuronRadius, axonOf,
+  HUB_IDS, network, waveR, fogAmount, agentHits, clock, selection, branchDelay, SECTIONS, sectionOf, isRelated, introDelay, neuronRadius, axonOf,
 } from './networkLayout';
 import { growArbor } from './dendrites';
 
@@ -168,6 +168,7 @@ void main(){
 `;
 
 const additive = { blending: THREE.AdditiveBlending, transparent: true, depthWrite: false };
+const ORIGIN = new THREE.Vector3();
 
 function hash(id: string) {
   let h = 0;
@@ -181,15 +182,11 @@ interface NeuronProps {
   project: Project;
   matched: boolean;
   searching: boolean;
-  portrait?: boolean;
 }
 
-// Local offset that lands `d` units screen-up (or screen-right) whether or not the network is turned for portrait
-const up = (d: number, portrait: boolean): [number, number, number] => (portrait ? [-d, 0, 0] : [0, d, 0]);
-const right = (d: number, portrait: boolean): [number, number, number] => (portrait ? [0, d, 0] : [d, 0, 0]);
-
-export function Neuron({ project, matched, searching, portrait = false }: NeuronProps) {
+export function Neuron({ project, matched, searching }: NeuronProps) {
   const groupRef = useRef<THREE.Group>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
   const hoveredId = useAppStore((s) => s.hoveredProjectId);
   const selectedId = useAppStore((s) => s.selectedProject?.id);
   const setHoveredProjectId = useAppStore((s) => s.setHoveredProjectId);
@@ -207,6 +204,8 @@ export function Neuron({ project, matched, searching, portrait = false }: Neuron
   const dim = (searching && !matched) || (!!focus && branchDelay(project.id, focus) === null);
   const isHub = HUB_IDS.includes(project.id);
   const isRoot = project.id === 'about-me';
+  // You and the sections are always labelled; work is labelled when it's in focus or matches a search
+  const showLabel = isRoot || isHub || (searching ? matched : !!focus && !dim);
 
   // Rank sets complexity: you > flagship work ≈ sections > supporting work
   const arbor = useMemo(() => {
@@ -235,19 +234,26 @@ export function Neuron({ project, matched, searching, portrait = false }: Neuron
     [color, seed, isRoot, project.id]
   );
 
-  useFrame(() => {
+  useFrame(({ camera, controls }) => {
     const t = clock.t;
     const { selectedProject, hoveredProjectId, motionPaused } = useAppStore.getState();
+    // Fade with depth behind the orbit centre, unless this neuron is on the focused path
+    const orbit = (controls as unknown as { target?: THREE.Vector3 } | null)?.target ?? ORIGIN;
+    const onFocus = !!(hoveredProjectId ?? selectedProject) && !dim;
+    const fog = onFocus ? 0 : fogAmount(camera.position.distanceTo(position), camera.position.distanceTo(orbit));
+    if (labelRef.current) labelRef.current.style.opacity = String(1 - fog);
     const elapsed = motionPaused ? Infinity : (performance.now() - selection.at) / 1000;
-    const fire = Math.exp(-(((position.x - waveX(t)) / 2.5) ** 2)) * 0.5;
+    const fire = Math.exp(-(((position.length() - waveR(t)) / 2.5) ** 2)) * 0.5;
     const idle = 0.12 + 0.08 * Math.sin(t * 0.5 + seed) * Math.sin(t * 0.31 + seed * 0.5);
     const d = branchDelay(project.id, selectedProject?.id);
     const branch = d !== null && elapsed >= d ? (project.id === selectedProject?.id ? 1 : 0.75) : 0;
     const hover = hoveredProjectId === project.id ? 1 : isRelated(project.id, hoveredProjectId) ? 0.45 : 0;
-    const target = Math.max(idle, fire, branch, hover, matched && searching ? 1 : 0);
+    // An agent's visit flashes the neuron, then fades over about a second
+    const visit = agentHits.has(project.id) ? Math.exp(-(t - agentHits.get(project.id)!) * 1.5) * 0.9 : 0;
+    const target = Math.max(idle, fire, branch, hover, visit, matched && searching ? 1 : 0);
     uniforms.uTime.value = t;
     uniforms.uActive.value = THREE.MathUtils.lerp(uniforms.uActive.value, target, 0.1);
-    uniforms.uDim.value = THREE.MathUtils.lerp(uniforms.uDim.value, dim ? 1 : 0, 0.1);
+    uniforms.uDim.value = THREE.MathUtils.lerp(uniforms.uDim.value, Math.max(dim ? 1 : 0, fog), 0.1);
     // Dendrites light outward from the soma when the neuron activates
     uniforms.uFront.value = THREE.MathUtils.lerp(uniforms.uFront.value, target > 0.4 ? 1.2 : 0.35, motionPaused ? 1 : 0.05);
     const appear = motionPaused ? 1 : easeOutBack(THREE.MathUtils.clamp((t - delay) / 0.6, 0, 1));
@@ -296,30 +302,32 @@ export function Neuron({ project, matched, searching, portrait = false }: Neuron
       </group>
 
       <Html
-        position={up(radius + (isRoot ? 1.9 : 1.3), portrait)}
+        position={[0, radius + (isRoot ? 1.9 : 1.3), 0]}
         center
         className="pointer-events-none"
         zIndexRange={[0, 50]} // Set a lower z-index range so modal can appear above
       >
-        <div
-          className={`neuron-label whitespace-nowrap text-center transition-opacity duration-300 [text-shadow:0_1px_8px_rgba(0,0,0,0.9)] ${dim ? 'opacity-25' : 'opacity-100'}`}
-          style={{ animationDelay: `${delay + 0.2}s` }}
-        >
-          {/* Fixed pixel sizes: labels stay readable at any zoom */}
-          <div className={`flex items-center justify-center gap-1.5 rounded-md bg-[#050608]/45 px-1.5 ${isRoot ? 'text-[18px]' : isHub ? 'text-[17px]' : 'text-[14px]'} font-semibold tracking-tight text-white`}>
-            {!isRoot && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />}
-            {project.title}
-          </div>
-          {isRoot && (
-            <div className="mt-0.5 text-[12px] font-medium uppercase tracking-[0.14em]" style={{ color }}>
-              AI Engineer · ML · Agentic Systems
+        <div ref={labelRef}>
+          <div
+            className={`neuron-label whitespace-nowrap text-center transition-opacity duration-300 [text-shadow:0_1px_8px_rgba(0,0,0,0.9)] ${!showLabel ? 'opacity-0' : dim ? 'opacity-25' : 'opacity-100'}`}
+            style={{ animationDelay: `${delay + 0.2}s` }}
+          >
+            {/* Fixed pixel sizes: labels stay readable at any zoom */}
+            <div className={`flex items-center justify-center gap-1.5 rounded-md bg-[#050608]/45 px-1.5 ${isRoot ? 'text-[18px]' : isHub ? 'text-[17px]' : 'text-[14px]'} font-semibold tracking-tight text-white`}>
+              {!isRoot && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}` }} />}
+              {project.title}
             </div>
-          )}
+            {isRoot && (
+              <div className="mt-0.5 text-[12px] font-medium uppercase tracking-[0.14em]" style={{ color }}>
+                AI Engineer · ML · Agentic Systems
+              </div>
+            )}
+          </div>
         </div>
       </Html>
 
       {hovered && (
-        <Html position={right(radius + 0.8, portrait)} zIndexRange={[60, 70]} className="pointer-events-none">
+        <Html position={[radius + 0.8, 0, 0]} zIndexRange={[60, 70]} className="pointer-events-none">
           <div className="glass w-64 -translate-y-1/2 rounded-2xl p-3.5 text-left">
             <div className="text-[11px] font-semibold tracking-[0.14em]" style={{ color }}>{kicker}</div>
             <div className="mt-0.5 text-[15px] font-semibold text-white">{project.title}</div>
